@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+/* this service specifies how to access the storage */
+service DIDASchedulerService {
+  rpc runApplication(DIDARunApplicationRequest) returns (DIDARunApplicationReply);
+}
+
+message DIDARunApplicationRequest {
+    string input = 1;
+    string filePath = 2;
+}
+
+message DIDARunApplicationReply {
+    bool ok = 1;
+}

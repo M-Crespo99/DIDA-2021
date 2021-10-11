@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+/* this service specifies how to access the storage */
+service PCSService {
+  rpc runWorker(PCSRunWorkerRequest) returns (PCSRunWorkerReply);
+  rpc runStorage(PCSRunStorageRequest) returns (PCSRunStorageReply);
+}
+
+message PCSRunWorkerRequest {
+	string id = 1;  // the id of the object being read
+	string url = 2;
+    int32 gossip_delay = 3;
+    bool debug = 4;
+}
+
+message PCSRunWorkerReply {
+	bool ok = 1;
+}
+
+message PCSRunStorageRequest {
+    string id = 1;  // the id of the object being read
+	string url = 2;
+    int32 gossip_delay = 3;
+    bool debug = 4;
+}
+
+message PCSRunStorageReply {
+    bool ok = 1;
+}

@@ -5,11 +5,27 @@ service DIDAStorageService {
   rpc read(DIDAReadRequest) returns (DIDARecordReply);
   rpc write(DIDAWriteRequest) returns (DIDAVersion);
   rpc updateIfValueIs(DIDAUpdateIfRequest) returns (DIDAVersion);
+  rpc listServer(DIDAListServerRequest) returns (DIDAListServerReply);
+  rpc crashServer(DIDACrashServerRequest) returns (DIDACrashServerReply);
+}
+
+message DIDACrashServerRequest {
+
+}
+
+message DIDACrashServerReply{
+	bool ok = 1;
 }
 
 message DIDAReadRequest {
 	string id = 1;  // the id of the object being read
 	DIDAVersion version = 2;
+}
+
+message DIDAListServerRequest{}
+
+message DIDAListServerReply{
+	repeated DIDARecordReply records = 1;
 }
 
 message DIDARecordReply {
