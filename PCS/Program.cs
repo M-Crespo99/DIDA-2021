@@ -1,5 +1,7 @@
 ﻿using System;
 using Grpc.Core;
+using Grpc.Reflection;
+using Grpc.Reflection.V1Alpha;
 
 namespace PCS
 {
@@ -12,8 +14,10 @@ namespace PCS
 
             try
             {
-                server = new Server()
-                {
+                var reflectionServiceImpl = new ReflectionServiceImpl(PCSService.Descriptor, ServerReflection.Descriptor);
+                server = new Server
+                {  
+                    Services = { PCSService.BindService(new PCSServiceImpl()), ServerReflection.BindService(reflectionServiceImpl) },
                     Ports = {new ServerPort("localhost", Port, ServerCredentials.Insecure)}
                 };
                 server.Start();
