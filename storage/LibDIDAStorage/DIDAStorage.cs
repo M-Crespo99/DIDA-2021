@@ -28,7 +28,7 @@ namespace DIDAStorage {
 
 		public static bool operator <(DIDAVersion v1, DIDAVersion v2){
 			return (v1.versionNumber < v2.versionNumber) || 
-			((v1.versionNumber == v2.versionNumber) &&(v1.replicaId < v2.replicaId));
+			((v1.versionNumber == v2.versionNumber) && (v1.replicaId < v2.replicaId));
 		}
 		public static bool operator >(DIDAVersion v1, DIDAVersion v2){
 			return (v1.versionNumber > v2.versionNumber) || 
@@ -72,7 +72,7 @@ namespace DIDAStorage {
 		private int MAX_VERSIONS = 10;
 
 		private int replicaId = 0;
-		private Dictionary<string, DIDAValue[]> values = new Dictionary<string, DIDAValue[]>();
+		private Dictionary<string, List<DIDAValue>> values = new Dictionary<string, List<DIDAValue>>();
 
 		public DIDAStorage(int replicaId){
 			this.replicaId = replicaId;
@@ -110,31 +110,52 @@ namespace DIDAStorage {
 				replicaId = this.replicaId
 			};
 
-			var currentValues = values[id];
 
-			int oldestIndex = FindIndexOfOldestVersion(currentValues);
-
-			//Increment the version
-			newVersion.versionNumber = FindMostRecentVersion(currentValues) + 1;
-
-			valueToWrite.version = newVersion;
-
-			//Write on top of the oldest	
-			if(currentValues.Length == MAX_VERSIONS){
-				values[id][oldestIndex] = valueToWrite;
-
-			}else{
-				values[id][values[id].Length] = valueToWrite;
+			if(!values.ContainsKey(id)){
+				values.Add(id, new List<DIDAValue>());
 			}
 
-			return newVersion;
+			
+			List<DIDAValue> currentValues = values[id];
+			//If There are already versions of something
+			if(currentValues.Count != 0){
+				int oldestIndex = FindIndexOfOldestVersion(currentValues);
+				//Increment the version
+				newVersion.versionNumber = FindMostRecentVersion(currentValues) + 1;
+
+				valueToWrite.version = newVersion;
+
+				//Write on top of the oldest	
+				if(currentValues.Count == MAX_VERSIONS){
+					Console.WriteLine("Oldest Index: " + oldestIndex);
+					
+					currentValues[oldestIndex] = valueToWrite;
+
+				}else{
+					Console.WriteLine("Not Max versions");
+
+					currentValues.Add(valueToWrite);
+				}
+			}else{
+				//If it is a new Record
+				Console.WriteLine("New Record");
+
+				valueToWrite.version = new DIDAVersion{
+					replicaId = replicaId,
+					versionNumber = 0
+				};
+
+				currentValues.Add(valueToWrite);
+			}
+
+			return valueToWrite.version;
 		}
 		
 		public DIDAVersion UpdateIfValueIs(string id, string oldvalue, string newvalue){
 			throw new NotImplementedException();
 		}
 
-		private int FindMostRecentVersion(DIDAValue[] values){
+		private int FindMostRecentVersion(List<DIDAValue> values){
 			DIDAVersion newestVersion = values[0].version;
 
 			foreach(DIDAValue v in values){
@@ -144,14 +165,15 @@ namespace DIDAStorage {
 			}
 			return newestVersion.versionNumber; 
 		}
-		private int FindIndexOfOldestVersion(DIDAValue[] values){
+		private int FindIndexOfOldestVersion(List<DIDAValue> values){
 			int indexOfOldest = 0;
 
 			DIDAVersion oldestVersion = values[0].version;
 
 			foreach(DIDAValue v in values){
 				if(v.version < oldestVersion){
-					indexOfOldest = Array.IndexOf(values, v);
+					indexOfOldest = values.IndexOf(v);
+					oldestVersion = v.version;
 				}
 			}
 			return indexOfOldest; 

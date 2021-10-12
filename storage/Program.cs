@@ -73,7 +73,7 @@ namespace storage
             Console.WriteLine("Gossip Delay: " + gossip_delay);
 
             Console.WriteLine("Listening on: " + args[1]);
-            Console.ReadKey();
+            Console.Read();
             server.ShutdownAsync().Wait();
             return 0;
         }

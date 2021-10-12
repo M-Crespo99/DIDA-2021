@@ -43,9 +43,7 @@ namespace storage{
         }
 
          private DIDAVersion processWriteRequest(DIDAWriteRequest request){
-            Console.WriteLine("Processing Write!");
             DIDAStorage.DIDAVersion version = storage.Write(request.Id, request.Val);
-
             return new DIDAVersion {
                 VersionNumber = version.versionNumber,
                 ReplicaId = version.replicaId,
