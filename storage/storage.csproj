@@ -15,4 +15,8 @@
     </PackageReference>
     <Protobuf Include="../Protos/DIDAStorage.proto" GrpcServices="Server" Link="Protos/DIDAStorage.proto" />
   </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="LibDIDAStorage\LibDIDAStorage.csproj" />
+    </ItemGroup>
 </Project>
