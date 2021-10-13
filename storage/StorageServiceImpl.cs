@@ -24,6 +24,8 @@ namespace storage{
         private DIDARecordReply processReadRequest(DIDAReadRequest request){
             try{
                 DIDAStorage.DIDAVersion version = new DIDAStorage.DIDAVersion();
+
+                //If version comes as null, we go for the most recent version. DIDAVersion is non nullable so putting -1 was the soltuion
                 if(request.Version == null){
                     version.versionNumber = -1;
                     version.replicaId = -1;
@@ -47,7 +49,7 @@ namespace storage{
                 return reply;
 
             }catch(DIDAStorage.Exceptions.DIDAStorageException e){
-                Console.WriteLine("Exceptiomn caught");
+                Console.WriteLine("Exception caught");
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
         }
@@ -59,5 +61,7 @@ namespace storage{
                 ReplicaId = version.replicaId,
             };
         }
+
+        //TODO: UpdateIfValueIs
     }
 }

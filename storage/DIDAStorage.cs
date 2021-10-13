@@ -7,13 +7,13 @@ namespace DIDAStorage{
     public class DIDAStorage : IDIDAStorage {
 		private int MAX_VERSIONS = 10;
 
-        private bool debug = true;
+        private bool _debug = true;
 
-		private int replicaId = 0;
+		private int _replicaId = 0;
 		private Dictionary<string, List<DIDAValue>> _values = new Dictionary<string, List<DIDAValue>>();
 
 		public DIDAStorage(int replicaId){
-			this.replicaId = replicaId;
+			this._replicaId = replicaId;
 		}
 
 		public DIDARecord Read(string id, DIDAVersion version){
@@ -36,7 +36,7 @@ namespace DIDAStorage{
 			valueToWrite.value = val;
 
 			DIDAVersion newVersion = new DIDAVersion{
-				replicaId = this.replicaId
+				replicaId = this._replicaId
 			};
 
             CheckIfNewRecord(id);
@@ -61,15 +61,15 @@ namespace DIDAStorage{
 				    }
 			    }else{
 				    //If it is a new Record
-				    valueToWrite.version = new DIDAVersion{
-					replicaId = replicaId,
-					versionNumber = 0
+				    valueToWrite.version = new DIDAVersion{ 
+						replicaId = this._replicaId,
+						versionNumber = 0
 				    };
 
 				    currentValues.Add(valueToWrite);
                 }
             }
-            if(debug){
+            if(this._debug){
                 Console.WriteLine("--> New Record Written: ");
                 Console.WriteLine("ID: "+ id);
                 Console.WriteLine(valueToWrite);
@@ -116,10 +116,8 @@ namespace DIDAStorage{
         private DIDAValue FindValue(string id, DIDAVersion version){
             lock(this._values[id]){ //We only need to lock the list of values we are accessing
                 if(version.versionNumber < 0){
-					Console.WriteLine("Returning newest version");
 					return FindMostRecentValue(id);
 				}
-				Console.WriteLine("Finding Value with certain version " + version.ToString());
 				return this._values[id].Find(value => value.version == version);
             }
         }
