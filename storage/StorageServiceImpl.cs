@@ -23,11 +23,18 @@ namespace storage{
 
         private DIDARecordReply processReadRequest(DIDAReadRequest request){
             try{
-                DIDAStorage.DIDARecord record = storage.Read(request.Id, new DIDAStorage.DIDAVersion
-                {
-                versionNumber = request.Version.VersionNumber,
-                replicaId = request.Version.ReplicaId
-                });
+                DIDAStorage.DIDAVersion version = new DIDAStorage.DIDAVersion();
+                if(request.Version == null){
+                    version.versionNumber = -1;
+                    version.replicaId = -1;
+                }
+                else{
+                    version = new DIDAStorage.DIDAVersion{
+                                    versionNumber = request.Version.VersionNumber,
+                                    replicaId = request.Version.ReplicaId
+                                    };
+                }
+                DIDAStorage.DIDARecord record = storage.Read(request.Id, version);
 
                 DIDARecordReply reply = new DIDARecordReply{
                     Id = request.Id,

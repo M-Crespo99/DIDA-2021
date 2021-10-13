@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 
 namespace DIDAStorage{
@@ -16,12 +17,11 @@ namespace DIDAStorage{
 		}
 
 		public DIDARecord Read(string id, DIDAVersion version){
+			//First check if we have an entry with this ID
 			if(this._values.ContainsKey(id)){
-                lock(this._values[id]){
-                    DIDAValue dValue =  FindValue(id, version);
-                    if(dValue.value != null){
-                        return new DIDARecord{id = id, version = version, val = dValue.value};
-                    }
+                DIDAValue dValue =  FindValue(id, version);
+                if(dValue.value != null){
+                    return new DIDARecord{id = id, version = dValue.version, val = dValue.value};
                 }
 				throw(new Exceptions.NoSuchVersionException(id, version));
 			}
@@ -47,11 +47,11 @@ namespace DIDAStorage{
 			    if(currentValues.Count != 0){
 				    int oldestIndex = FindIndexOfOldestVersion(currentValues);
 				    //Increment the version
-				    newVersion.versionNumber = FindMostRecentVersion(currentValues) + 1;
+				    newVersion.versionNumber = FindMostRecentVersionNumber(currentValues) + 1;
 
 				    valueToWrite.version = newVersion;
 
-				    //Write on top of the oldest	
+				    //Write on top of the oldest if we already at MAX VERSIONS
 				    if(currentValues.Count == MAX_VERSIONS){
 					    currentValues[oldestIndex] = valueToWrite;
 
@@ -81,7 +81,7 @@ namespace DIDAStorage{
 			throw new NotImplementedException();
 		}
 
-		private int FindMostRecentVersion(List<DIDAValue> values){
+		private int FindMostRecentVersionNumber(List<DIDAValue> values){
 			DIDAVersion newestVersion = values[0].version;
 
 			foreach(DIDAValue v in values){
@@ -91,6 +91,14 @@ namespace DIDAStorage{
 			}
 			return newestVersion.versionNumber; 
 		}
+
+		private DIDAValue FindMostRecentValue(string id){
+			int maxVersion = this._values[id].Max(value => value.version.versionNumber);
+
+			return this._values[id].Find(value => value.version.versionNumber == maxVersion);
+		}
+
+
 		private int FindIndexOfOldestVersion(List<DIDAValue> values){
 			int indexOfOldest = 0;
         
@@ -107,7 +115,12 @@ namespace DIDAStorage{
 
         private DIDAValue FindValue(string id, DIDAVersion version){
             lock(this._values[id]){ //We only need to lock the list of values we are accessing
-                return this._values[id].Find(value => value.version == version);
+                if(version.versionNumber < 0){
+					Console.WriteLine("Returning newest version");
+					return FindMostRecentValue(id);
+				}
+				Console.WriteLine("Finding Value with certain version " + version.ToString());
+				return this._values[id].Find(value => value.version == version);
             }
         }
 
