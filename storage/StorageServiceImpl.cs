@@ -22,24 +22,27 @@ namespace storage{
 
 
         private DIDARecordReply processReadRequest(DIDAReadRequest request){
-
-            DIDAStorage.DIDARecord record = storage.Read(request.Id, new DIDAStorage.DIDAVersion
+            try{
+                DIDAStorage.DIDARecord record = storage.Read(request.Id, new DIDAStorage.DIDAVersion
                 {
                 versionNumber = request.Version.VersionNumber,
                 replicaId = request.Version.ReplicaId
-                }
-            );
+                });
 
-            DIDARecordReply reply = new DIDARecordReply{
-                Id = request.Id,
-                Version = new DIDAVersion{
-                    VersionNumber = record.version.versionNumber,
-                    ReplicaId = record.version.replicaId
-                },
-                Val = record.val
-            };
+                DIDARecordReply reply = new DIDARecordReply{
+                    Id = request.Id,
+                    Version = new DIDAVersion{
+                        VersionNumber = record.version.versionNumber,
+                        ReplicaId = record.version.replicaId
+                    },
+                    Val = record.val
+                };
+                return reply;
 
-            return reply;
+            }catch(DIDAStorage.Exceptions.DIDAStorageException e){
+                Console.WriteLine("Exceptiomn caught");
+                throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
+            }
         }
 
          private DIDAVersion processWriteRequest(DIDAWriteRequest request){

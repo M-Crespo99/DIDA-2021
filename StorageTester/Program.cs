@@ -1,5 +1,6 @@
 ﻿using System;
 using Grpc.Net.Client;
+using Grpc.Core;
 
 namespace StorageTester
 {
@@ -24,21 +25,30 @@ namespace StorageTester
                 Id = "Joao",
                 Val = "42"
             });
+            Console.WriteLine("yeet");
 
-            DIDARecordReply r = client.read(new DIDAReadRequest{
-                Id = "Joao",
-                Version = v
-            });
+            try{
+                DIDARecordReply r = client.read(new DIDAReadRequest{
+                Id = "Miguel",
+                Version = new DIDAVersion{VersionNumber = 10,
+                ReplicaId = 0}
+                });
+                Console.WriteLine("Version Number: " + v.VersionNumber);
+                Console.WriteLine("Replica ID: " + v.ReplicaId);
+
+                Console.WriteLine("READ ID: " + r.Id);
+                Console.WriteLine("READ Replica ID: " + r.Version.ReplicaId);
+                Console.WriteLine("READ Version Nyumvber: " + r.Version.VersionNumber);
+                Console.WriteLine("READ VAlue : " + r.Val);
+                Console.WriteLine("Hello World!");
+            }catch(RpcException e){
+
+                Console.WriteLine("Exception: " + e.Message);
+            }
             
             
-            Console.WriteLine("Version Number: " + v.VersionNumber);
-            Console.WriteLine("Replica ID: " + v.ReplicaId);
-
-            Console.WriteLine("READ ID: " + r.Id);
-            Console.WriteLine("READ Replica ID: " + r.Version.ReplicaId);
-            Console.WriteLine("READ Version Nyumvber: " + r.Version.VersionNumber);
-            Console.WriteLine("READ VAlue : " + r.Val);
-            Console.WriteLine("Hello World!");
+            
+            
         }
     }
 }
