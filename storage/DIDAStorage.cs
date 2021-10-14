@@ -12,6 +12,7 @@ namespace DIDAStorage
         private bool _debug = true;
 
         private int _replicaId = 0;
+
         private Dictionary<string, List<DIDAValue>> _values = new Dictionary<string, List<DIDAValue>>();
 
         public DIDAStorage(int replicaId)
@@ -66,7 +67,6 @@ namespace DIDAStorage
                     if (currentValues.Count == MAX_VERSIONS)
                     {
                         currentValues[oldestIndex] = valueToWrite;
-
                     }
                     else
                     {
