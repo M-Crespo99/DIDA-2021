@@ -8,9 +8,9 @@ service PCSService {
 
 message PCSRunWorkerRequest {
 	string id = 1;  // the id of the object being read
-	string url = 2;
-  int32 gossip_delay = 3;
-  bool debug = 4;
+//	string url = 2;
+  int32 gossip_delay = 2;
+  bool debug = 3;
 }
 
 message PCSRunWorkerReply {
@@ -19,9 +19,9 @@ message PCSRunWorkerReply {
 
 message PCSRunStorageRequest {
     string id = 1;  // the id of the object being read
-	string url = 2;
-    int32 gossip_delay = 3;
-    bool debug = 4;
+//	  string port = 2;
+    int32 gossip_delay = 2;
+    bool debug = 3;
 }
 
 message PCSRunStorageReply {
