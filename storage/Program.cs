@@ -62,7 +62,7 @@ namespace storage
                 return 1;
             }   
             Server server = new Server{
-                Services = {DIDAStorageService.BindService(new StorageServerService(server_id))},
+                Services = {DIDAStorage.Proto.DIDAStorageService.BindService(new StorageServerService(server_id))},
                 Ports = { new ServerPort("localhost", port, ServerCredentials.Insecure) }
             };
 

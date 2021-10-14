@@ -3,25 +3,30 @@ using Grpc.Core;
 using System;
 
 namespace storage{
-    public class StorageServerService : DIDAStorageService.DIDAStorageServiceBase{
+    public class StorageServerService : DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceBase{
         
-        DIDAStorage.DIDAStorage storage;
+        DIDAStorage.Storage storage;
 
         public StorageServerService(int replicaId){
-            storage = new DIDAStorage.DIDAStorage(replicaId);
+            storage = new DIDAStorage.Storage(replicaId, true);
         }
 
 
-        public override Task<DIDARecordReply> read(DIDAReadRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.DIDARecordReply> read(DIDAStorage.Proto.DIDAReadRequest request, ServerCallContext context){
             return Task.FromResult(processReadRequest(request));
         }
 
-        public override Task<DIDAVersion> write(DIDAWriteRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.DIDAVersion> write(DIDAStorage.Proto.DIDAWriteRequest request, ServerCallContext context){
             return Task.FromResult(processWriteRequest(request));
         }
 
+        public override Task<DIDAStorage.Proto.DIDAVersion> updateIfValueIs(DIDAStorage.Proto.DIDAUpdateIfRequest request, ServerCallContext context){
+            return Task.FromResult(processUpdateIfRequest(request));
+        }
 
-        private DIDARecordReply processReadRequest(DIDAReadRequest request){
+
+
+        private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
             try{
                 DIDAStorage.DIDAVersion version = new DIDAStorage.DIDAVersion();
 
@@ -38,9 +43,9 @@ namespace storage{
                 }
                 DIDAStorage.DIDARecord record = storage.Read(request.Id, version);
 
-                DIDARecordReply reply = new DIDARecordReply{
+                DIDAStorage.Proto.DIDARecordReply reply = new DIDAStorage.Proto.DIDARecordReply{
                     Id = request.Id,
-                    Version = new DIDAVersion{
+                    Version = new DIDAStorage.Proto.DIDAVersion{
                         VersionNumber = record.version.versionNumber,
                         ReplicaId = record.version.replicaId
                     },
@@ -48,18 +53,35 @@ namespace storage{
                 };
                 return reply;
 
-            }catch(DIDAStorage.Exceptions.DIDAStorageException e){
-                Console.WriteLine("Exception caught");
+            }
+            catch(DIDAStorage.Exceptions.DIDAStorageException e){
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
         }
 
-         private DIDAVersion processWriteRequest(DIDAWriteRequest request){
+         private DIDAStorage.Proto.DIDAVersion processWriteRequest(DIDAStorage.Proto.DIDAWriteRequest request){
             DIDAStorage.DIDAVersion version = storage.Write(request.Id, request.Val);
-            return new DIDAVersion {
+            return new DIDAStorage.Proto.DIDAVersion {
                 VersionNumber = version.versionNumber,
                 ReplicaId = version.replicaId,
             };
+        }
+
+        private DIDAStorage.Proto.DIDAVersion processUpdateIfRequest(DIDAStorage.Proto.DIDAUpdateIfRequest request){
+            try{
+                DIDAStorage.DIDAVersion version = storage.UpdateIfValueIs(request.Id, request.Oldvalue, request.Newvalue);
+
+                if(version.versionNumber < 0){
+                     throw new RpcException(new Status(StatusCode.InvalidArgument, "Value to update did not match."));
+                }
+
+                return new DIDAStorage.Proto.DIDAVersion {
+                VersionNumber = version.versionNumber,
+                ReplicaId = version.replicaId,
+            };
+            }catch(DIDAStorage.Exceptions.DIDAStorageException e){
+                throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
+            }
         }
 
         //TODO: UpdateIfValueIs

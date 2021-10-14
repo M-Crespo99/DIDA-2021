@@ -5,18 +5,20 @@ using System.Linq;
 
 namespace DIDAStorage
 {
-    public class DIDAStorage : IDIDAStorage
+    public class Storage : IDIDAStorage
     {
         private int MAX_VERSIONS = 10;
 
-        private bool _debug = true;
+        private bool _debug = false;
 
         private int _replicaId = 0;
+
         private Dictionary<string, List<DIDAValue>> _values = new Dictionary<string, List<DIDAValue>>();
 
-        public DIDAStorage(int replicaId)
+        public Storage(int replicaId, bool debug)
         {
             this._replicaId = replicaId;
+            this._debug = debug;
         }
 
         public DIDARecord Read(string id, DIDAVersion version)
@@ -66,7 +68,6 @@ namespace DIDAStorage
                     if (currentValues.Count == MAX_VERSIONS)
                     {
                         currentValues[oldestIndex] = valueToWrite;
-
                     }
                     else
                     {
@@ -99,9 +100,10 @@ namespace DIDAStorage
         {
             lock (this._values[id])
             {
-                DIDAValue valueToChange = FindMostRecentValue(id);
+                //Give the version -1 so that we get the latest
+                var valueToChange = this.Read(id, new DIDAVersion { replicaId = -1, versionNumber = -1 });
 
-                if (valueToChange.value == oldvalue)
+                if (valueToChange.val == oldvalue)
                 {
                     return this.Write(id, newvalue);
                 }
