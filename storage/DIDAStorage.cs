@@ -78,7 +78,20 @@ namespace DIDAStorage{
 		}
 		
 		public DIDAVersion UpdateIfValueIs(string id, string oldvalue, string newvalue){
-			throw new NotImplementedException();
+			lock(this._values[id]){
+				DIDAValue valueToChange = FindMostRecentValue(id);
+
+				if(valueToChange.value == oldvalue){
+					return this.Write(id, newvalue);
+				}
+
+				//TODO: Return error?
+				return new DIDAVersion{
+					versionNumber = -1,
+					replicaId = -1
+				};
+			}
+			
 		}
 
 		private int FindMostRecentVersionNumber(List<DIDAValue> values){
@@ -93,9 +106,9 @@ namespace DIDAStorage{
 		}
 
 		private DIDAValue FindMostRecentValue(string id){
-			int maxVersion = this._values[id].Max(value => value.version.versionNumber);
+			int maxVersionNumber = this._values[id].Max(value => value.version.versionNumber);
 
-			return this._values[id].Find(value => value.version.versionNumber == maxVersion);
+			return this._values[id].Find(value => value.version.versionNumber == maxVersionNumber);
 		}
 
 
