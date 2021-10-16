@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -21,10 +22,33 @@ namespace PCS
             Console.WriteLine(request.ToString());
             Console.WriteLine("## ------ ##");
 
-            var counter = Interlocked.Increment(ref Counter);
-            _portWorker.TryAdd(counter, String.Format("Worker-{0}", counter));
+            try
+            {
+                var counter = Interlocked.Increment(ref Counter);
+                _portWorker.TryAdd(counter, String.Format("Worker-{0}", counter));
+                
+                //TODO must change the path below (just for testing now)
+                var argument = String.Format("/Users/wallacegarbim/IST/REPO/DIDA-2021/worker/bin/Debug/net5.0/worker.dll {0}",
+                    counter);
+                
+                executeRunCommand("/usr/local/share/dotnet/dotnet", argument);
+                return await Task.FromResult(new PCSRunWorkerReply {Ok = true});
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return await Task.FromResult(new PCSRunWorkerReply {Ok = false});
+            }
+        }
 
-            return await Task.FromResult(new PCSRunWorkerReply {Ok = true});
+        private void executeRunCommand(string fileName, string argument)
+        {
+            if (Environment.OSVersion.Platform == PlatformID.Unix)
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo { FileName = fileName, Arguments = argument}; 
+                Process proc = new Process() { StartInfo = startInfo, };
+                proc.Start();
+            }
         }
 
         public override async Task<PCSRunStorageReply> runStorage(PCSRunStorageRequest request, ServerCallContext context)
@@ -32,11 +56,22 @@ namespace PCS
             Console.WriteLine("## Testing parameters for Run Storage ##");
             Console.WriteLine(request.ToString());
             Console.WriteLine("## ------ ##");
-            
-            var counter = Interlocked.Increment(ref Counter);
-            _portStorage.TryAdd(counter, String.Format("Storage-{0}", counter));
-            
-            return await Task.FromResult(new PCSRunStorageReply {Ok = true});
+
+            try
+            {
+                var counter = Interlocked.Increment(ref Counter);
+                _portStorage.TryAdd(counter, String.Format("Storage-{0}", counter));
+                
+                var argument = String.Format("/Users/wallacegarbim/IST/REPO/DIDA-2021/storage/bin/Debug/net5.0/storage.dll {0}",
+                    counter);
+                executeRunCommand("/usr/local/share/dotnet/dotnet", argument);
+                return await Task.FromResult(new PCSRunStorageReply {Ok = true});
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return await Task.FromResult(new PCSRunStorageReply {Ok = false});
+            }
         }
     }
 }

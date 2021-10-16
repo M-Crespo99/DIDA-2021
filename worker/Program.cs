@@ -15,8 +15,10 @@ namespace worker
             try
             {
                 var port = int.Parse(args[0]);
+                var reflectionServiceImpl = new ReflectionServiceImpl(DIDAWorkerService.Descriptor, ServerReflection.Descriptor);
                 server = new Server
                 {
+                    Services = { DIDAWorkerService.BindService(new WorkerServiceImpl()), ServerReflection.BindService(reflectionServiceImpl) },
                     Ports = {new ServerPort("localhost", port, Insecure)}
                 };
                 server.Start();
