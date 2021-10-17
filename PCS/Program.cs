@@ -17,7 +17,7 @@ namespace PCS
                 var reflectionServiceImpl = new ReflectionServiceImpl(PCSService.Descriptor, ServerReflection.Descriptor);
                 server = new Server
                 {  
-                    Services = { PCSService.BindService(new PCSServiceImpl()), ServerReflection.BindService(reflectionServiceImpl) },
+                    Services = { PCSService.BindService(new PcsServiceImpl()), ServerReflection.BindService(reflectionServiceImpl) },
                     Ports = {new ServerPort("localhost", Port, ServerCredentials.Insecure)}
                 };
                 server.Start();

@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-/* this service specifies how to access the storage */
 service PCSService {
   rpc runWorker(PCSRunWorkerRequest) returns (PCSRunWorkerReply);
   rpc runStorage(PCSRunStorageRequest) returns (PCSRunStorageReply);
