@@ -4,6 +4,7 @@ syntax = "proto3";
 service PCSService {
   rpc runWorker(PCSRunWorkerRequest) returns (PCSRunWorkerReply);
   rpc runStorage(PCSRunStorageRequest) returns (PCSRunStorageReply);
+  rpc runScheduler(PCSRunSchedulerRequest) returns (PCSRunSchedulerReply);
 }
 
 message PCSRunWorkerRequest {
@@ -26,4 +27,13 @@ message PCSRunStorageRequest {
 
 message PCSRunStorageReply {
     bool ok = 1;
+}
+
+message PCSRunSchedulerRequest {
+  string id = 1;  // the id of the object being read
+  bool debug = 2;
+}
+
+message PCSRunSchedulerReply {
+  bool ok = 1;
 }
