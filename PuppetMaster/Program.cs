@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Grpc.Core;
 using Grpc.Reflection;
 using Grpc.Reflection.V1Alpha;
@@ -22,6 +23,9 @@ namespace PuppetMaster
                 };
                 server.Start();
                 Console.WriteLine("The Puppet Master server is listening on the port: " + Port);
+
+                //TODO must change the local file below (to be more generic), just for now
+                PcsStart("/usr/local/share/dotnet/dotnet", "/Users/wallacegarbim/IST/REPO/DIDA-2021/PCS/bin/Debug/net5.0/PCS.dll");
                 Console.ReadKey();
             }
             catch (Exception e)
@@ -35,6 +39,16 @@ namespace PuppetMaster
                 {
                     server.ShutdownAsync().Wait();
                 }
+            }
+        }
+
+        private static void PcsStart(string fileName, string argument)
+        {
+            if (Environment.OSVersion.Platform == PlatformID.Unix)
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo { FileName = fileName, Arguments = argument}; 
+                Process proc = new Process { StartInfo = startInfo, };
+                proc.Start();
             }
         }
     }

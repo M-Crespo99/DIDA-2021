@@ -4,6 +4,7 @@ service PCSService {
   rpc runWorker(PCSRunWorkerRequest) returns (PCSRunWorkerReply);
   rpc runStorage(PCSRunStorageRequest) returns (PCSRunStorageReply);
   rpc runScheduler(PCSRunSchedulerRequest) returns (PCSRunSchedulerReply);
+  rpc listServer(PmListServerRequest) returns (PmListServerReply);
 }
 
 message PCSRunWorkerRequest {
@@ -35,4 +36,10 @@ message PCSRunSchedulerRequest {
 
 message PCSRunSchedulerReply {
   bool ok = 1;
+}
+
+message PmListServerRequest { }
+
+message PmListServerReply {
+  repeated string objects = 1;
 }

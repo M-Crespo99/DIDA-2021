@@ -24,8 +24,11 @@ namespace PuppetMaster
             
             var counter = Interlocked.Increment(ref _counter);
             _worker.TryAdd(counter, request.Url);
+
+            var pcsClient = new PcsClient(request.Url);
+            pcsClient.CreateWorker(counter, false, 0);
             
-            return await base.createWorker(request, context);
+            return await Task.FromResult(new PmCreateWorkerReply {Ok = true});
         }
 
         public override async Task<PmCreateStorageReply> createStorage(PmCreateStorageRequest request, ServerCallContext context)
@@ -37,7 +40,10 @@ namespace PuppetMaster
             var counter = Interlocked.Increment(ref _counter);
             _storage.TryAdd(counter, request.Url);
             
-            return await base.createStorage(request, context);
+            var pcsClient = new PcsClient(request.Url);
+            pcsClient.CreateStorage(counter, false, 0);
+            
+            return await Task.FromResult(new PmCreateStorageReply {Ok = true});
         }
 
         public override async Task<PmCreateSchedulerReply> createScheduler(PmCreateSchedulerRequest request, ServerCallContext context)
@@ -49,7 +55,10 @@ namespace PuppetMaster
             var counter = Interlocked.Increment(ref _counter);
             _scheduler.TryAdd(counter, request.Url);
             
-            return await base.createScheduler(request, context);
+            var pcsClient = new PcsClient(request.Url);
+            pcsClient.CreateScheduler(counter, false);
+            
+            return await Task.FromResult(new PmCreateSchedulerReply {Ok = true});
         }
 
         public override async Task<PmCheckStatusReply> checkStatus(PmCheckStatusRequest request, ServerCallContext context)

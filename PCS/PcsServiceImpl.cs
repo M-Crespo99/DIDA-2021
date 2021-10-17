@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -99,6 +100,27 @@ namespace PCS
                 Console.WriteLine(e);
                 return await Task.FromResult(new PCSRunSchedulerReply {Ok = false});
             }
+        }
+
+        public override async Task<PmListServerReply> listServer(PmListServerRequest request, ServerCallContext context)
+        {
+            Console.WriteLine("## Testing parameters for List server ##");
+            Console.WriteLine(request.ToString());
+            Console.WriteLine("## ------ ##");
+            var response = new PmListServerReply();
+            //TODO change to thread list
+            var objects = new List<string>();
+            foreach (var portWorkerKey in _portWorker.Keys)
+            {
+                var client = new Client(String.Format("localhost:{0}", portWorkerKey));
+                var result = String.Format("The worker {0} liveness status is: {1}", _portWorker[portWorkerKey],
+                    client.WorkerLivenessCheck());
+                Console.WriteLine(result);
+                objects.Add(result);
+                
+            }
+            
+            return await Task.FromResult(new PmListServerReply {Objects = { objects }});
         }
     }
 }
