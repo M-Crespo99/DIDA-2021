@@ -16,11 +16,11 @@ namespace PCS
         private static int _counter = 5000;
         
         private readonly ConcurrentDictionary<int, string> _portWorker = new (ConcurrencyLevel, 100);
-        private readonly ConcurrentDictionary<int, string> _portStorage = new (ConcurrencyLevel, 100);
+        private readonly ConcurrentDictionary<int, string> _idHostStorage = new (ConcurrencyLevel, 100);
         private readonly ConcurrentDictionary<int, string> _portScheduler = new (ConcurrencyLevel, 100);
         public override async Task<PCSRunWorkerReply> runWorker(PCSRunWorkerRequest request, ServerCallContext context)
         {
-            Console.WriteLine("## Testing parameters for Run Worker ##");
+            Console.WriteLine("## Creating Worker ##");
             Console.WriteLine(request.ToString());
             Console.WriteLine("## ------ ##");
 
@@ -57,23 +57,23 @@ namespace PCS
 
         public override async Task<PCSRunStorageReply> runStorage(PCSRunStorageRequest request, ServerCallContext context)
         {
-            Console.WriteLine("## Testing parameters for Run Storage ##");
+            Console.WriteLine("##Creating Storage ##");
             Console.WriteLine(request.ToString());
             Console.WriteLine("## ------ ##");
 
             try
             {
-                var counter = Interlocked.Increment(ref _counter);
+                var port = Interlocked.Increment(ref _counter);
                 
                 var dir = Environment.CurrentDirectory
                     .Replace("PuppetMaster", "storage")
                     .Replace("PCS", "storage");
 
-                var host = String.Format("localhost:{0}", counter);
+                var host = String.Format("localhost:{0}", port);
 
                 var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, host , request.GossipDelay);
                 executeRunCommand("dotnet", argument);
-                _portStorage.TryAdd(counter, String.Format("Storage-{0}", counter));
+                _idHostStorage.TryAdd(int.Parse(request.Id), host);
                 
                 return await Task.FromResult(new PCSRunStorageReply {Ok = true});
             }
@@ -86,7 +86,7 @@ namespace PCS
 
         public override async Task<PCSRunSchedulerReply> runScheduler(PCSRunSchedulerRequest request, ServerCallContext context)
         {
-            Console.WriteLine("## Testing parameters for Run Scheduler ##");
+            Console.WriteLine("## Creating Scheduler ##");
             Console.WriteLine(request.ToString());
             Console.WriteLine("## ------ ##");
 
@@ -110,25 +110,30 @@ namespace PCS
             }
         }
 
-        public override async Task<PmListServerReply> listServer(PmListServerRequest request, ServerCallContext context)
+        public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
         {
-            Console.WriteLine("## Testing parameters for List server ##");
+            Console.WriteLine("## Listing server with the ID: ##"+request.Id);
             Console.WriteLine(request.ToString());
             Console.WriteLine("## ------ ##");
-            var response = new PmListServerReply();
-            //TODO change to thread list
-            var objects = new List<string>();
-            foreach (var portWorkerKey in _portWorker.Keys)
-            {
-                var client = new Client(String.Format("localhost:{0}", portWorkerKey));
-                var result = String.Format("The worker {0} liveness status is: {1}", _portWorker[portWorkerKey],
-                    client.WorkerLivenessCheck());
-                Console.WriteLine(result);
-                objects.Add(result);
-                
-            }
+            List<string> objects = new List<string>();
             
-            return await Task.FromResult(new PmListServerReply {Objects = { objects }});
+            if (_idHostStorage[request.Id] != null)
+            {
+                var client = new Client(_idHostStorage[request.Id]);
+                var result = client.ListServerStorage();
+                foreach (var didaCompleteRecord in result.Records)
+                {
+                    objects.Add(didaCompleteRecord.ToString());
+                }
+                Console.WriteLine(objects);
+                return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
+            }
+            return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
+        }
+
+        public override async Task<PcsListGlobalReply> listGlobal(PcsListGlobalRequest request, ServerCallContext context)
+        {
+            return await base.listGlobal(request, context);
         }
     }
 }

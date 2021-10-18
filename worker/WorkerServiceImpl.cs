@@ -9,7 +9,7 @@ namespace worker
     {
         public override async Task<LivenessCheckReply> livenessCheck(LivenessCheckRequest request, ServerCallContext context)
         {
-            Console.WriteLine("## Testing liveness check for worker##");
+            Console.WriteLine("## Liveness check for worker##");
             Console.WriteLine(request.ToString());
             Console.WriteLine("## ------ ##");
             return await Task.FromResult(new LivenessCheckReply{Ok = true});
