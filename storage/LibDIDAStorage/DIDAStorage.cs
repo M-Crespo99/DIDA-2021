@@ -1,4 +1,7 @@
-﻿namespace DIDAStorage {
+﻿using System;
+using System.Collections.Generic;
+
+namespace DIDAStorage {
 	public interface IDIDAStorage {
 		DIDARecord Read(string id, DIDAVersion version);
 		DIDAVersion Write(string id, string val);
@@ -8,10 +11,6 @@
 		public string id;
 		public DIDAVersion version;
 		public string val;
-
-		public override string ToString(){
-			return string.Format("%% DIDARecord %% \n\tID: {0}\n\tValue: {1}\t{2}", id, val, version);
-		}
 	}
 
 
@@ -29,7 +28,7 @@
 
 		public static bool operator <(DIDAVersion v1, DIDAVersion v2){
 			return (v1.versionNumber < v2.versionNumber) || 
-			((v1.versionNumber == v2.versionNumber) && (v1.replicaId < v2.replicaId));
+			((v1.versionNumber == v2.versionNumber) &&(v1.replicaId < v2.replicaId));
 		}
 		public static bool operator >(DIDAVersion v1, DIDAVersion v2){
 			return (v1.versionNumber > v2.versionNumber) || 
@@ -58,10 +57,6 @@
 		{
 			return base.GetHashCode();
 		}
-
-		public override string ToString(){
-			return string.Format("Version Number: {0}\nReplica ID: {1}\n", versionNumber, replicaId);
-		}
 	}
 
 	public struct DIDAValue {
@@ -72,7 +67,6 @@
 		public override string ToString(){
 			return string.Format("Value: {0}\nVersion: {1}", value, version);
 		}
-		
-	}
 
+	}
 }
