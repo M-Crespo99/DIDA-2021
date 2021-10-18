@@ -32,7 +32,7 @@ namespace PCS
                     .Replace("PuppetMaster", "worker")
                     .Replace("PCS", "worker");
 
-                var argument = String.Format("{0}/worker.dll {1}", dir, counter);
+                var argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1}", dir, counter);
 
                 executeRunCommand("dotnet", argument);
                 _portWorker.TryAdd(counter, String.Format("Worker-{0}", counter));
@@ -69,7 +69,7 @@ namespace PCS
                     .Replace("PuppetMaster", "storage")
                     .Replace("PCS", "storage");
 
-                var argument = String.Format("{0}/storage.dll {1}", dir, counter);
+                var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1}", dir, counter);
                 executeRunCommand("dotnet", argument);
                 _portStorage.TryAdd(counter, String.Format("Storage-{0}", counter));
                 
@@ -96,7 +96,7 @@ namespace PCS
                     .Replace("PuppetMaster", "scheduler")
                     .Replace("PCS", "scheduler");
                     
-                var argument = String.Format("{0}/scheduler.dll {1}", dir, counter);
+                var argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, counter);
                 executeRunCommand("dotnet", argument);
                 _portScheduler.TryAdd(counter, String.Format("Scheduler-{0}", counter));
                 return await Task.FromResult(new PCSRunSchedulerReply {Ok = true});
