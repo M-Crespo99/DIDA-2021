@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-/* this service specifies how to access the storage */
 service DIDASchedulerService {
   rpc runApplication(DIDARunApplicationRequest) returns (DIDARunApplicationReply);
   // schedule must assign a worker to each operator in the application script
   rpc assignOperator(DIDAAssignmentRequest) returns (DIDAAssignmentReply);
+  rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
 }
 
 message DIDARunApplicationRequest {
@@ -24,5 +24,11 @@ message DIDAAssignmentRequest {
 }
 
 message DIDAAssignmentReply {
+  bool ok = 1;
+}
+
+message LivenessCheckRequest {}
+
+message LivenessCheckReply {
   bool ok = 1;
 }

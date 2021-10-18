@@ -1,3 +1,11 @@
 syntax = "proto3";
 
-service DIDAWorkerService {}
+service DIDAWorkerService {
+  rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
+}
+
+message LivenessCheckRequest {}
+
+message LivenessCheckReply {
+  bool ok = 1;
+}
