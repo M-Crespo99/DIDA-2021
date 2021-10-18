@@ -57,6 +57,10 @@ namespace DIDAStorage {
 		{
 			return base.GetHashCode();
 		}
+
+		public override string ToString(){
+			return string.Format("Version Number: {0}\nReplica ID: {1}\n", versionNumber, replicaId);
+		}
 	}
 
 	public struct DIDAValue {
