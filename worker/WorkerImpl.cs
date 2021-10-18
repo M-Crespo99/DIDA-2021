@@ -1,19 +1,19 @@
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client;
-using static DIDAWorkerService;
 using System.Reflection;
 using System.IO;
 using System;
 using DIDAWorker;
+using DIDAWorker.Proto;
 
 namespace worker
 {
-    public class WorkerImpl : DIDAWorkerServiceBase
+    public class WorkerImpl : DIDAWorkerService.DIDAWorkerServiceBase
     {
         DIDAStorageNode[] storageReplicas;
         delLocateStorageId locationFunction;
-        public override Task<DIDAReply> workOnOperator(DIDARequest request, ServerCallContext context)
+        public async override Task<DIDAReply> workOnOperator(DIDAWorker.Proto.DIDARequest request, ServerCallContext context)
         {
             string className = request.Chain[request.Next].Operator.Classname;
             string dllNameTermination = ".dll";
@@ -45,17 +45,18 @@ namespace worker
                             {
                                 var nextWorkerAssignment = request.Chain[request.Next];
                                 GrpcChannel channel = GrpcChannel.ForAddress("http://" + nextWorkerAssignment.Host + ":" + nextWorkerAssignment.Port);
-                                //var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);
+                                var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);
+                                client.workOnOperatorAsync(request);
                             }
                             
                         }
                     }
                 }
             }
-            return base.workOnOperator(request, context);
+            return await Task.FromResult(new DIDAReply());
         }
 
-        private DIDAWorker.DIDAMetaRecord convertToWorkerMetaRecord(DIDAMetaRecord metaRecord)
+        private DIDAWorker.DIDAMetaRecord convertToWorkerMetaRecord(DIDAWorker.Proto.DIDAMetaRecord metaRecord)
         {
             return new DIDAWorker.DIDAMetaRecord()
             {
@@ -63,9 +64,9 @@ namespace worker
             };
         }
 
-        private DIDAMetaRecord convertToProtoMetaRecord(DIDAWorker.DIDAMetaRecord metaRecord)
+        private DIDAWorker.Proto.DIDAMetaRecord convertToProtoMetaRecord(DIDAWorker.DIDAMetaRecord metaRecord)
         {
-            return new DIDAMetaRecord()
+            return new DIDAWorker.Proto.DIDAMetaRecord()
             {
                 Id = metaRecord.id
             };

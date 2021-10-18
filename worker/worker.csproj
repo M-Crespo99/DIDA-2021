@@ -16,8 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Protos\worker.proto" GrpcServices="Client">
-      <GrpcServices>Server</GrpcServices>
+    <Protobuf Include="..\Protos\worker.proto" GrpcServices="Both">
       <Access>Public</Access>
       <ProtoCompile>True</ProtoCompile>
       <CompileOutputs>True</CompileOutputs>

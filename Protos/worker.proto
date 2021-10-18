@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+option csharp_namespace = "DIDAWorker.Proto";
 // service for worker operator calls from scheduler to worker and worker to worker
 service DIDAWorkerService {
   rpc workOnOperator(DIDARequest) returns (DIDAReply);
