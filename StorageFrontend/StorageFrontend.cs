@@ -149,6 +149,12 @@ namespace StorageFrontend
             }
         }
 
+
+        public void crashServer(){
+            this._client.crashServerAsync(new DIDAStorage.Proto.DIDACrashServerRequest());
+            return;
+        }
+
         public void ToggleVerbose(){
             this._verbose = !this._verbose;
         }

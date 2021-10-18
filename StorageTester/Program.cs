@@ -32,6 +32,9 @@ namespace StorageTester
                 else if(parts[0] == "update" && parts.Length == 4){
                     frontend.UpdateIfValueIs(parts[1], parts[2], parts[3]);
                 }
+                else if(parts[0] == "crash" && parts.Length == 1){
+                    frontend.crashServer();
+                }
                 Console.Write("> ");
             }
         }

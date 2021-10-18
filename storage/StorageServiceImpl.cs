@@ -24,6 +24,11 @@ namespace storage{
             return Task.FromResult(processUpdateIfRequest(request));
         }
 
+        public override Task<DIDAStorage.Proto.DIDACrashServerReply> crashServer(DIDAStorage.Proto.DIDACrashServerRequest request, ServerCallContext context){
+            Environment.Exit(1);
+            return Task.FromResult(new DIDAStorage.Proto.DIDACrashServerReply());
+        }
+
 
 
         private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
