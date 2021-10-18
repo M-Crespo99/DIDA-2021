@@ -71,7 +71,7 @@ namespace PCS
 
                 var host = String.Format("localhost:{0}", counter);
 
-                var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, host, request.Id, request.GossipDelay);
+                var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, host , request.GossipDelay);
                 executeRunCommand("dotnet", argument);
                 _portStorage.TryAdd(counter, String.Format("Storage-{0}", counter));
                 

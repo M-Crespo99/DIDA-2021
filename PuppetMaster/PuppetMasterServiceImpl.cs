@@ -26,7 +26,7 @@ namespace PuppetMaster
             _worker.TryAdd(counter, request.Url);
 
             var pcsClient = new PcsClient(request.Url);
-            pcsClient.CreateWorker(counter, false, 0);
+            pcsClient.CreateWorker(counter, false, request.GossipDelay);
             
             return await Task.FromResult(new PmCreateWorkerReply {Ok = true});
         }
@@ -41,7 +41,7 @@ namespace PuppetMaster
             _storage.TryAdd(counter, request.Url);
             
             var pcsClient = new PcsClient(request.Url);
-            pcsClient.CreateStorage(counter, false, 0);
+            pcsClient.CreateStorage(request.Id, false, request.GossipDelay);
             
             return await Task.FromResult(new PmCreateStorageReply {Ok = true});
         }
