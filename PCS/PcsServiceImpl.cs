@@ -69,7 +69,9 @@ namespace PCS
                     .Replace("PuppetMaster", "storage")
                     .Replace("PCS", "storage");
 
-                var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1}", dir, counter);
+                var host = String.Format("localhost:{0}", counter);
+
+                var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, host, request.Id, request.GossipDelay);
                 executeRunCommand("dotnet", argument);
                 _portStorage.TryAdd(counter, String.Format("Storage-{0}", counter));
                 
