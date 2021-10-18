@@ -27,7 +27,13 @@ message DIDAReadRequest {
 message DIDAListServerRequest{}
 
 message DIDAListServerReply{
-	repeated DIDARecordReply records = 1;
+	repeated DIDACompleteRecord records = 1;
+}
+
+
+message DIDACompleteRecord{
+	string id = 1;
+	repeated DIDARecordReply versions = 2; // list of versions
 }
 
 message DIDARecordReply {

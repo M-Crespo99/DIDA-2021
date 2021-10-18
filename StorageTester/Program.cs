@@ -35,6 +35,10 @@ namespace StorageTester
                 else if(parts[0] == "crash" && parts.Length == 1){
                     frontend.crashServer();
                 }
+                else if(parts[0] == "list" && parts.Length == 1){
+                    var reply = frontend.listServer();
+                    Console.WriteLine(reply.ToString());
+                }
                 Console.Write("> ");
             }
         }

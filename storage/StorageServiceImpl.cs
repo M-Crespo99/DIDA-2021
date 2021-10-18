@@ -26,9 +26,13 @@ namespace storage{
 
         public override Task<DIDAStorage.Proto.DIDACrashServerReply> crashServer(DIDAStorage.Proto.DIDACrashServerRequest request, ServerCallContext context){
             Environment.Exit(1);
-            return Task.FromResult(new DIDAStorage.Proto.DIDACrashServerReply());
+            //This should not reach here, but who knows
+            throw new NotImplementedException();
         }
 
+        public override Task<DIDAStorage.Proto.DIDAListServerReply> listServer(DIDAStorage.Proto.DIDAListServerRequest request, ServerCallContext context){
+            return Task.FromResult(this.storage.getProtoRecords());
+        }
 
 
         private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
@@ -88,7 +92,5 @@ namespace storage{
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
         }
-
-        //TODO: UpdateIfValueIs
     }
 }

@@ -168,6 +168,27 @@ namespace DIDAStorage
                 return this._values[id].Find(value => value.version == version);
             }
         }
+        public DIDAStorage.Proto.DIDAListServerReply getProtoRecords()
+        {
+
+            var reply = new DIDAStorage.Proto.DIDAListServerReply();
+            foreach(KeyValuePair<string, List<DIDAStorage.DIDAValue>> currentRecords in this._values){
+                var currentCompleteRecord = new DIDAStorage.Proto.DIDACompleteRecord();
+                currentCompleteRecord.Id = currentRecords.Key;
+                foreach(DIDAStorage.DIDAValue currentVersion in currentRecords.Value){
+                    currentCompleteRecord.Versions.Add(new DIDAStorage.Proto.DIDARecordReply{
+                        Id = currentRecords.Key,
+                        Version = new DIDAStorage.Proto.DIDAVersion{
+                            VersionNumber = currentVersion.version.versionNumber,
+                            ReplicaId = currentVersion.version.replicaId
+                        },
+                        Val = currentVersion.value
+                    });
+                }
+                reply.Records.Add(currentCompleteRecord);
+            }
+            return reply;
+        }
 
         private void CheckIfNewRecord(string id)
         {

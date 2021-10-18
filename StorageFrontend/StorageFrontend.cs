@@ -155,6 +155,10 @@ namespace StorageFrontend
             return;
         }
 
+        public DIDAStorage.Proto.DIDAListServerReply listServer(){
+            return this._client.listServer(new DIDAStorage.Proto.DIDAListServerRequest());
+        }
+
         public void ToggleVerbose(){
             this._verbose = !this._verbose;
         }
