@@ -27,12 +27,14 @@ namespace PCS
             try
             {
                 var counter = Interlocked.Increment(ref _counter);
-
-                //TODO must change the path below (just for testing now)
-                var argument = String.Format("/Users/wallacegarbim/IST/REPO/DIDA-2021/worker/bin/Debug/net5.0/worker.dll {0}",
-                    counter);
                 
-                executeRunCommand("/usr/local/share/dotnet/dotnet", argument);
+                var dir = Environment.CurrentDirectory
+                    .Replace("PuppetMaster", "worker")
+                    .Replace("PCS", "worker");
+
+                var argument = String.Format("{0}/worker.dll {1}", dir, counter);
+
+                executeRunCommand("dotnet", argument);
                 _portWorker.TryAdd(counter, String.Format("Worker-{0}", counter));
                 return await Task.FromResult(new PCSRunWorkerReply {Ok = true});
             }
@@ -62,10 +64,13 @@ namespace PCS
             try
             {
                 var counter = Interlocked.Increment(ref _counter);
+                
+                var dir = Environment.CurrentDirectory
+                    .Replace("PuppetMaster", "storage")
+                    .Replace("PCS", "storage");
 
-                var argument = String.Format("/Users/wallacegarbim/IST/REPO/DIDA-2021/storage/bin/Debug/net5.0/storage.dll {0}",
-                    counter);
-                executeRunCommand("/usr/local/share/dotnet/dotnet", argument);
+                var argument = String.Format("{0}/storage.dll {1}", dir, counter);
+                executeRunCommand("dotnet", argument);
                 _portStorage.TryAdd(counter, String.Format("Storage-{0}", counter));
                 
                 return await Task.FromResult(new PCSRunStorageReply {Ok = true});
@@ -87,11 +92,12 @@ namespace PCS
             {
                 var counter = Interlocked.Increment(ref _counter);
 
-                //TODO must change the path below (just for testing now)
-                var argument = String.Format("/Users/wallacegarbim/IST/REPO/DIDA-2021/scheduler/bin/Debug/net5.0/scheduler.dll {0}",
-                    counter);
-                
-                executeRunCommand("/usr/local/share/dotnet/dotnet", argument);
+               var dir = Environment.CurrentDirectory
+                    .Replace("PuppetMaster", "scheduler")
+                    .Replace("PCS", "scheduler");
+                    
+                var argument = String.Format("{0}/scheduler.dll {1}", dir, counter);
+                executeRunCommand("dotnet", argument);
                 _portScheduler.TryAdd(counter, String.Format("Scheduler-{0}", counter));
                 return await Task.FromResult(new PCSRunSchedulerReply {Ok = true});
             }

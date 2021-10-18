@@ -24,8 +24,9 @@ namespace PuppetMaster
                 server.Start();
                 Console.WriteLine("The Puppet Master server is listening on the port: " + Port);
 
-                //TODO must change the local file below (to be more generic), just for now
-                PcsStart("/usr/local/share/dotnet/dotnet", "/Users/wallacegarbim/IST/REPO/DIDA-2021/PCS/bin/Debug/net5.0/PCS.dll");
+                var argument = Environment.CurrentDirectory.Replace("PuppetMaster", "PCS");
+                    
+                PcsStart("dotnet", String.Format("{0}/PCS.dll", argument));
                 Console.ReadKey();
             }
             catch (Exception e)
