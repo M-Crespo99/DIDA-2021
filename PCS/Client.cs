@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using DIDAStorage.Proto;
 using Grpc.Core;
+using DIDAWorker.Proto;
 
 namespace PCS
 {
