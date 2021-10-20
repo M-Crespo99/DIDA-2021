@@ -3,6 +3,7 @@ using Grpc.Core;
 using Grpc.Reflection;
 using Grpc.Reflection.V1Alpha;
 using static Grpc.Core.ServerCredentials;
+using DIDAWorker.Proto;
 
 namespace worker
 {
