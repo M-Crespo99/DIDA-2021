@@ -25,7 +25,7 @@ namespace scheduler
         {
 
             this.ParseServers(this._workers, request.Workers.ToList());
-            this.ParseServers(this._workers, request.Storages.ToList());
+            this.ParseServers(this._storages, request.Storages.ToList());
 
             //Get the operators
             var operators = this.ReadApplicationFile(request.FilePath);
