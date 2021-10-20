@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option csharp_namespace = "DIDAStorage.Proto";
+
 /* this service specifies how to access the storage */
 service DIDAStorageService {
   rpc read(DIDAReadRequest) returns (DIDARecordReply);
@@ -25,7 +27,13 @@ message DIDAReadRequest {
 message DIDAListServerRequest{}
 
 message DIDAListServerReply{
-	repeated DIDARecordReply records = 1;
+	repeated DIDACompleteRecord records = 1;
+}
+
+
+message DIDACompleteRecord{
+	string id = 1;
+	repeated DIDARecordReply versions = 2; // list of versions
 }
 
 message DIDARecordReply {

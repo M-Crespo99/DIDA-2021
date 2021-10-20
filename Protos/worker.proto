@@ -4,6 +4,7 @@ option csharp_namespace = "DIDAWorker.Proto";
 // service for worker operator calls from scheduler to worker and worker to worker
 service DIDAWorkerService {
   rpc workOnOperator(DIDARequest) returns (DIDAReply);
+  rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
 }
 
 message DIDARequest {
@@ -30,4 +31,10 @@ message DIDAAssignment {
 message DIDAOperatorID {
   string classname = 1;
   int32 order = 2;
+}
+
+message LivenessCheckRequest {}
+
+message LivenessCheckReply {
+  bool ok = 1;
 }

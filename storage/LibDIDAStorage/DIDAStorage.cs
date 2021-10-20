@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DIDAStorage {
 	public interface IDIDAStorage {
@@ -16,5 +17,60 @@ namespace DIDAStorage {
 	public struct DIDAVersion {
 		public int versionNumber;
 		public int replicaId;
+
+		public static bool operator ==(DIDAVersion v1, DIDAVersion v2){
+			return (v1.versionNumber == v2.versionNumber) && (v1.replicaId == v2.replicaId);
+		}
+
+		public static bool operator !=(DIDAVersion v1, DIDAVersion v2){
+			return (v1.versionNumber != v2.versionNumber) || (v1.replicaId != v2.replicaId);
+		}
+
+		public static bool operator <(DIDAVersion v1, DIDAVersion v2){
+			return (v1.versionNumber < v2.versionNumber) || 
+			((v1.versionNumber == v2.versionNumber) &&(v1.replicaId < v2.replicaId));
+		}
+		public static bool operator >(DIDAVersion v1, DIDAVersion v2){
+			return (v1.versionNumber > v2.versionNumber) || 
+			((v1.versionNumber == v2.versionNumber) && (v1.replicaId > v2.replicaId));
+		}
+
+		public override bool Equals(object obj)
+		{
+			//
+			// See the full list of guidelines at
+			//   http://go.microsoft.com/fwlink/?LinkID=85237
+			// and also the guidance for operator== at
+			//   http://go.microsoft.com/fwlink/?LinkId=85238
+			//
+			
+			if (obj == null || GetType() != obj.GetType())
+			{
+				return false;
+			}
+			
+			return base.Equals (obj);
+		}
+		
+		// override object.GetHashCode
+		public override int GetHashCode()
+		{
+			return base.GetHashCode();
+		}
+
+		public override string ToString(){
+			return string.Format("Version Number: {0}\nReplica ID: {1}\n", versionNumber, replicaId);
+		}
+	}
+
+	public struct DIDAValue {
+		public DIDAVersion version;
+
+		public string value;
+
+		public override string ToString(){
+			return string.Format("Value: {0}\nVersion: {1}", value, version);
+		}
+
 	}
 }

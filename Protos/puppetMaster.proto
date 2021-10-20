@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+service PuppetMasterService {
+  rpc createWorker(PmCreateWorkerRequest) returns (PmCreateWorkerReply);
+  rpc createStorage(PmCreateStorageRequest) returns (PmCreateStorageReply);
+  rpc createScheduler(PmCreateSchedulerRequest) returns (PmCreateSchedulerReply);
+  rpc checkStatus(PmCheckStatusRequest) returns (PmCheckStatusReply);
+  rpc listGlobal(PmListGlobalRequest) returns (PmListGlobalReply);
+  rpc listServerPcs(PmListServerPcsRequest) returns (PmListServerPcsReply);
+  rpc listServer(PmListServerRequest) returns (PmListServerReply);
+}
+
+message PmCreateWorkerRequest {
+  string url = 1;
+  int32 gossip_delay = 2;
+  bool debug = 3;
+}
+
+message PmCreateWorkerReply {
+  bool ok = 1;
+  string result = 2; // msg with the url and port
+}
+
+message PmCreateStorageRequest {
+  int32 id = 1;
+  string url = 2;
+  int32 gossip_delay = 3;
+}
+
+message PmCreateStorageReply {
+  bool ok = 1;
+  string result = 2; // msg with the url and port
+}
+
+message PmCreateSchedulerRequest {
+  string url = 1;
+}
+
+message PmCreateSchedulerReply {
+  bool ok = 1;
+  string result = 2; // msg with the url and port
+}
+
+message PmCheckStatusRequest {
+//  string serverId = 1;
+//  string url = 2;
+}
+
+message PmCheckStatusReply {
+  bool ok = 1;
+}
+
+message PmListServerPcsRequest {
+    string serverId = 1;
+}
+
+message PmListServerPcsReply {
+  bool ok = 1;
+  repeated string objects = 2;
+}
+
+message PmListGlobalRequest {}
+
+message PmListGlobalReply {
+  bool ok = 1;
+  repeated string objects = 2; //need to check this to fit all info
+}
+
+message PmListServerRequest {
+  int32 id = 1;
+}
+
+message PmListServerReply {
+  bool ok = 1;
+  repeated string objects = 2; //need to check this to fit all info
+}

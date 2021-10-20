@@ -7,21 +7,21 @@ namespace scheduler
 {
     class Program
     {
-        private const int Port = 5001;
         static void Main(string[] args)
         {
             Server server = null;
 
             try
             {
+                var port = int.Parse(args[0]);
                 var reflectionServiceImpl = new ReflectionServiceImpl(DIDASchedulerService.Descriptor, ServerReflection.Descriptor);
                 server = new Server
                 {  
                     Services = { DIDASchedulerService.BindService(new SchedulerServiceImpl()), ServerReflection.BindService(reflectionServiceImpl) },
-                    Ports = {new ServerPort("localhost", Port, ServerCredentials.Insecure)}
+                    Ports = {new ServerPort("localhost", port, ServerCredentials.Insecure)}
                 };
                 server.Start();
-                Console.WriteLine("The Scheduler server is listening on the port: " + Port);
+                Console.WriteLine("The Scheduler server is listening on the port: " + port);
                 Console.ReadKey();
             }
             catch (Exception e)

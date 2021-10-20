@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using Grpc;
 using Grpc.Core;
-using Grpc.Net.Client;
-using DIDAWorker.Proto;
+using Grpc.Reflection;
+using Grpc.Reflection.V1Alpha;
+using static Grpc.Core.ServerCredentials;
 
 namespace worker
 {
@@ -11,57 +10,33 @@ namespace worker
     {
         static void Main(string[] args)
         {
-            Server worker1 = new Server
-            {
-                Services = { DIDAWorkerService.BindService(new WorkerImpl()) },
-                Ports = { new ServerPort("localhost", 20001, ServerCredentials.Insecure) }
-            };
+            Server server = null;
 
-            Server worker2 = new Server
+            try
             {
-                Services = { DIDAWorkerService.BindService(new WorkerImpl()) },
-                Ports = { new ServerPort("localhost", 20002, ServerCredentials.Insecure) }
-            };
-            
-            worker1.Start();
-            worker2.Start();
-
-            var channel = GrpcChannel.ForAddress("http://localhost:20001");
-            var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);
-
-            DIDARequest request = new DIDARequest
-            {
-                Meta = new DIDAMetaRecord {Id = 1},
-                Input = "",
-                Next = 0,
-                ChainSize = 2
-            };
-            request.Chain.Add(new DIDAAssignment
-            {
-                Operator = new DIDAOperatorID
+                var port = int.Parse(args[0]);
+                var reflectionServiceImpl = new ReflectionServiceImpl(DIDAWorkerService.Descriptor, ServerReflection.Descriptor);
+                server = new Server
                 {
-                    Classname = "CounterOperator",
-                    Order = 0
-                },
-                Host = "localhost",
-                Port = 20001,
-                Output = ""
-            });
-            
-            request.Chain.Add(new DIDAAssignment
+                    Services = { DIDAWorkerService.BindService(new WorkerServiceImpl()), ServerReflection.BindService(reflectionServiceImpl) },
+                    Ports = {new ServerPort("localhost", port, Insecure)}
+                };
+                server.Start();
+                Console.WriteLine("The Worker server is listening on the port: " + port);
+                Console.ReadKey();
+            }
+            catch (Exception e)
             {
-                Operator = new DIDAOperatorID
+                Console.WriteLine(e.Message);
+                throw;
+            }
+            finally
+            {
+                if (server != null)
                 {
-                    Classname = "CounterOperator",
-                    Order = 1
-                },
-                Host = "localhost",
-                Port = 20002,
-                Output = ""
-            });
-
-            var reply = client.workOnOperator(request);
-            System.Console.WriteLine("next");
+                    server.ShutdownAsync().Wait();
+                }
+            }
         }
     }
 }
