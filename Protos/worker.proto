@@ -19,6 +19,7 @@ message DIDAReply {}
 
 message DIDAMetaRecord {
   int32 id = 1;
+  repeated DIDAStorageNodeDetails storages = 2;
 }
 
 message DIDAAssignment {
@@ -37,4 +38,9 @@ message LivenessCheckRequest {}
 
 message LivenessCheckReply {
   bool ok = 1;
+}
+
+message DIDAStorageNodeDetails{
+  string host = 1;
+  int32 port = 2;
 }

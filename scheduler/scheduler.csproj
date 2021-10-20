@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.18.1" />
     <PackageReference Include="Grpc.Core" Version="2.41.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.32.0" />
     <PackageReference Include="Grpc.Reflection" Version="2.41.0" />
     <PackageReference Include="Grpc.Tools" Version="2.41.0">
       <PrivateAssets>all</PrivateAssets>
@@ -15,5 +16,9 @@
     </PackageReference>
     <Protobuf Include="../Protos/Scheduler.proto" GrpcServices="Server" Link="Protos/Scheduler.proto" />
   </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\WorkerFrontend\WorkerFrontend.csproj" />
+    </ItemGroup>
 
 </Project>
