@@ -15,6 +15,7 @@
     </PackageReference>
     <Protobuf Include="../Protos/PCS.proto" GrpcServices="Server" Link="Protos/PCS.proto" />
     <Protobuf Include="../Protos/worker.proto" GrpcServices="Client" Link="Protos/worker.proto" />
+    <Protobuf Include="../Protos/DIDAStorage.proto" GrpcServices="Client" Link="Protos/DIDAStorage.proto" />
   </ItemGroup>
 
 </Project>

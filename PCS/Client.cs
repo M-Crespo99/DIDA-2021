@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using DIDAStorage.Proto;
 using Grpc.Core;
 
 namespace PCS
@@ -31,7 +32,17 @@ namespace PCS
             ShutdownChannel();
             return response.Ok;
         }
-
+        
+        public DIDAListServerReply ListServerStorage()
+        {
+            var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+            var response = client.listServer(new DIDAListServerRequest());
+                
+            ShutdownChannel();
+            return response;
+        }
+        
+        
         private void ShutdownChannel()
         {
             _channel.ShutdownAsync().Wait();

@@ -25,31 +25,44 @@ namespace PuppetMaster
             return _channel;
         }
 
-        public void CreateWorker(int id, bool debug, int gossipDelay)
+        public PCSRunWorkerReply CreateWorker(int id, bool debug, int gossipDelay)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
             var request = new PCSRunWorkerRequest {Id = id.ToString(), Debug = debug, GossipDelay = gossipDelay};
             var response = client.runWorkerAsync(request).GetAwaiter().GetResult();
-            Console.WriteLine(response.Ok);
+            Console.WriteLine(response.Result);
             ShutdownChannel();
+            return response;
         }
         
-        public void CreateStorage(int id, bool debug, int gossipDelay)
+        public PCSRunStorageReply CreateStorage(int id, bool debug, int gossipDelay)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
             var request = new PCSRunStorageRequest{Id = id.ToString(), Debug = debug, GossipDelay = gossipDelay};
             var response = client.runStorageAsync(request).GetAwaiter().GetResult();
-            Console.WriteLine(response.Ok);
+            Console.WriteLine(response.Result);
             ShutdownChannel();
+            return response;
         }
         
-        public void CreateScheduler(int id, bool debug)
+        public PCSRunSchedulerReply CreateScheduler(int id, bool debug)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
-            var request = new PCSRunSchedulerRequest(){Id = id.ToString(), Debug = debug};
+            var request = new PCSRunSchedulerRequest{Id = id.ToString(), Debug = debug};
             var response = client.runSchedulerAsync(request).GetAwaiter().GetResult();
-            Console.WriteLine(response.Ok);
+            Console.WriteLine(response.Result);
             ShutdownChannel();
+            return response;
+        }
+        
+        public PcsListServerReply ListServer(int id)
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            var request = new PcsListServerRequest {Id = id};
+            var response = client.listServerAsync(request).GetAwaiter().GetResult();
+            Console.WriteLine(response.Objects);
+            ShutdownChannel();
+            return response;
         }
         
         private void ShutdownChannel()

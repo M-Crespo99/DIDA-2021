@@ -4,7 +4,8 @@ service PCSService {
   rpc runWorker(PCSRunWorkerRequest) returns (PCSRunWorkerReply);
   rpc runStorage(PCSRunStorageRequest) returns (PCSRunStorageReply);
   rpc runScheduler(PCSRunSchedulerRequest) returns (PCSRunSchedulerReply);
-  rpc listServer(PmListServerRequest) returns (PmListServerReply);
+  rpc listServer(PcsListServerRequest) returns (PcsListServerReply);
+  rpc listGlobal(PcsListGlobalRequest) returns (PcsListGlobalReply);
 }
 
 message PCSRunWorkerRequest {
@@ -16,6 +17,7 @@ message PCSRunWorkerRequest {
 
 message PCSRunWorkerReply {
 	bool ok = 1;
+  string result = 2;
 }
 
 message PCSRunStorageRequest {
@@ -27,6 +29,7 @@ message PCSRunStorageRequest {
 
 message PCSRunStorageReply {
     bool ok = 1;
+    string result = 2;
 }
 
 message PCSRunSchedulerRequest {
@@ -36,10 +39,19 @@ message PCSRunSchedulerRequest {
 
 message PCSRunSchedulerReply {
   bool ok = 1;
+  string result = 2;
 }
 
-message PmListServerRequest { }
+message PcsListServerRequest {
+  int32 id = 1;
+}
 
-message PmListServerReply {
+message PcsListServerReply {
+  repeated string objects = 1;
+}
+
+message PcsListGlobalRequest { }
+
+message PcsListGlobalReply {
   repeated string objects = 1;
 }

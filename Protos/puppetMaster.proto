@@ -7,11 +7,13 @@ service PuppetMasterService {
   rpc checkStatus(PmCheckStatusRequest) returns (PmCheckStatusReply);
   rpc listGlobal(PmListGlobalRequest) returns (PmListGlobalReply);
   rpc listServerPcs(PmListServerPcsRequest) returns (PmListServerPcsReply);
+  rpc listServer(PmListServerRequest) returns (PmListServerReply);
 }
 
 message PmCreateWorkerRequest {
   string url = 1;
   int32 gossip_delay = 2;
+  bool debug = 3;
 }
 
 message PmCreateWorkerReply {
@@ -60,6 +62,15 @@ message PmListServerPcsReply {
 message PmListGlobalRequest {}
 
 message PmListGlobalReply {
+  bool ok = 1;
+  repeated string objects = 2; //need to check this to fit all info
+}
+
+message PmListServerRequest {
+  int32 id = 1;
+}
+
+message PmListServerReply {
   bool ok = 1;
   repeated string objects = 2; //need to check this to fit all info
 }
