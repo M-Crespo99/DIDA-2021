@@ -32,14 +32,14 @@ namespace worker
                         {
                             operatorFromReflection = (IDIDAOperator) Activator.CreateInstance(type);
                             
-                            var metaRecord = convertToWorkerMetaRecord(request.Meta);
+                            var metaRecord = ConvertToWorkerMetaRecord(request.Meta);
                             string previousOutput = request.Next == 0 ? "" : request.Chain[request.Next - 1].Output;
                             
                             operatorFromReflection.ConfigureStorage(storageReplicas, locationFunction);
                             string newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                             
                             request.Chain[request.Next].Output = newOutput;
-                            request.Meta = convertToProtoMetaRecord(metaRecord);
+                            request.Meta = ConvertToProtoMetaRecord(metaRecord);
                             request.Next++;
                             if (request.Next < request.ChainSize)
                             {
@@ -64,7 +64,7 @@ namespace worker
             return await Task.FromResult(new LivenessCheckReply{Ok = true});
         }
 
-        private DIDAWorker.DIDAMetaRecord convertToWorkerMetaRecord(DIDAWorker.Proto.DIDAMetaRecord metaRecord)
+        private DIDAWorker.DIDAMetaRecord ConvertToWorkerMetaRecord(DIDAWorker.Proto.DIDAMetaRecord metaRecord)
         {
             return new DIDAWorker.DIDAMetaRecord()
             {
@@ -72,7 +72,7 @@ namespace worker
             };
         }
 
-        private DIDAWorker.Proto.DIDAMetaRecord convertToProtoMetaRecord(DIDAWorker.DIDAMetaRecord metaRecord)
+        private DIDAWorker.Proto.DIDAMetaRecord ConvertToProtoMetaRecord(DIDAWorker.DIDAMetaRecord metaRecord)
         {
             return new DIDAWorker.Proto.DIDAMetaRecord()
             {
