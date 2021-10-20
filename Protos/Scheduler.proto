@@ -9,8 +9,10 @@ service DIDASchedulerService {
 }
 
 message DIDARunApplicationRequest {
-    string input = 1;
-    string filePath = 2;
+  string input = 1;
+  string filePath = 2;
+  repeated string workers = 3;
+  repeated string storages = 4;
 }
 
 message DIDARunApplicationReply {
