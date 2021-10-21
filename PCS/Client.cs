@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using DIDAStorage.Proto;
 using Grpc.Core;
-using DIDAWorker.Proto;
+// using DIDAWorker.Proto;
 
 namespace PCS
 {
@@ -26,13 +26,13 @@ namespace PCS
 
             return _channel;
         }
-        public bool WorkerLivenessCheck()
-        {
-            var client = new DIDAWorkerService.DIDAWorkerServiceClient(GetConnection());
-            var response = client.livenessCheckAsync(new LivenessCheckRequest()).GetAwaiter().GetResult();
-            ShutdownChannel();
-            return response.Ok;
-        }
+        // public bool WorkerLivenessCheck()
+        // {
+        //     var client = new DIDAWorkerService.DIDAWorkerServiceClient(GetConnection());
+        //     var response = client.livenessCheckAsync(new LivenessCheckRequest()).GetAwaiter().GetResult();
+        //     ShutdownChannel();
+        //     return response.Ok;
+        // }
         
         public DIDAListServerReply ListServerStorage()
         {
