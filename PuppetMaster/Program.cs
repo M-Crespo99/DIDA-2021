@@ -23,11 +23,8 @@ namespace PuppetMaster
                 };
                 server.Start();
                 Console.WriteLine("The Puppet Master server is listening on the port: " + Port);
-
-                var argument = Environment.CurrentDirectory.
-                    Replace("PuppetMaster", "PCS");
-                    
-                PcsStart("dotnet", String.Format("{0}/bin/Debug/net5.0/PCS.dll", argument));
+     
+                PcsStart();
                 Console.ReadKey();
             }
             catch (Exception e)
@@ -44,14 +41,14 @@ namespace PuppetMaster
             }
         }
 
-        private static void PcsStart(string fileName, string argument)
+        private static void PcsStart()
         {
-            if (Environment.OSVersion.Platform == PlatformID.Unix)
-            {
-                ProcessStartInfo startInfo = new ProcessStartInfo { FileName = fileName, Arguments = argument}; 
-                Process proc = new Process { StartInfo = startInfo, };
-                proc.Start();
-            }
+            var argument = Environment.CurrentDirectory.
+                Replace("PuppetMaster", "PCS");
+            
+            ProcessStartInfo startInfo = new ProcessStartInfo { FileName = "dotnet", Arguments = String.Format("{0}/bin/Debug/net5.0/PCS.dll", argument)}; 
+            Process proc = new Process { StartInfo = startInfo, };
+            proc.Start();
         }
     }
 }

@@ -47,12 +47,9 @@ namespace PCS
 
         private void executeRunCommand(string fileName, string argument)
         {
-            if (Environment.OSVersion.Platform == PlatformID.Unix)
-            {
-                ProcessStartInfo startInfo = new ProcessStartInfo { FileName = fileName, Arguments = argument}; 
-                Process proc = new Process { StartInfo = startInfo, };
-                proc.Start();
-            }
+            ProcessStartInfo startInfo = new ProcessStartInfo { FileName = fileName, Arguments = argument}; 
+            Process proc = new Process { StartInfo = startInfo, };
+            proc.Start();
         }
 
         public override async Task<PCSRunStorageReply> runStorage(PCSRunStorageRequest request, ServerCallContext context)
