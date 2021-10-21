@@ -20,34 +20,28 @@ namespace scheduler
         private int _idCounter = 0;
         public override async Task<DIDARunApplicationReply> runApplication(DIDARunApplicationRequest request, ServerCallContext context)
         {
-            Console.WriteLine("SCHEDULER: RUNNING APPLCIATION");
             this.ParseServers(this._workers, request.Workers.ToList());
             this.ParseServers(this._storages, request.Storages.ToList());
-            Console.WriteLine("SCHEDULER: GETTING THE OPERATORS");
             //Get the operators
             var operators = this.ReadApplicationFile(request.FilePath);
-            Console.WriteLine("SCHEDULER: SORTING OPERATORS");
             //sort them
             operators = operators.OrderBy(op => op.Item2).ToList();
-            Console.WriteLine("SCHEDULER: BUILDING REQUEST");
             
             DIDAWorker.Proto.DIDARequest newRequest = new DIDAWorker.Proto.DIDARequest();
-            newRequest.Meta = new DIDAWorker.Proto.DIDAMetaRecord{
-                Id = this._idCounter,
-            };
-            this._idCounter++;
-            Console.WriteLine("2");
+            lock(this){
+                newRequest.Meta = new DIDAWorker.Proto.DIDAMetaRecord{
+                    Id = this._idCounter,
+                };
+                this._idCounter++;
+            }
+            
             newRequest.Input = request.Input;
-            Console.WriteLine("3");
             newRequest.Next = 0;
-            Console.WriteLine("4");
             newRequest.ChainSize = operators.Count;
-            Console.WriteLine("5");
 
             this.ScheduleOperators(newRequest, operators);
             this.AssignStorageDetails(newRequest);
 
-            Console.WriteLine("SCHEDULER: CONTACTING WORKER");
 
             WorkerFrontend.Frontend workerFrontend = new WorkerFrontend.Frontend(newRequest.Chain.First().Host, newRequest.Chain.First().Port);
 
@@ -96,8 +90,6 @@ namespace scheduler
         }
 
         private void ParseServers(List<string> listToAdd ,List<string> nodes){
-            Console.WriteLine("SCHEDULER PARSE SERVERS");
-            Console.WriteLine(nodes.ToString());
             foreach(string node in nodes){
                 if(!listToAdd.Contains(node)){
                     listToAdd.Add(node);
@@ -120,14 +112,16 @@ namespace scheduler
 
         private void ScheduleOperators(DIDAWorker.Proto.DIDARequest request, List<Tuple<string, int>> operators){
             //Round robin implementation of load distribution
-            Console.WriteLine("SCHEDULER SCEDULING OPERATORS");
 
             if(this._workers.Count == 0){
                 //TODO; Do something?
             }
 
             foreach(Tuple<string, int> op in operators){
-                var hostInfo = this.GetAddressInfo(this._workers[this._currentWorkerOrder]);
+                Tuple<string, string> hostInfo; 
+                lock(this){
+                    hostInfo = this.GetAddressInfo(this._workers[this._currentWorkerOrder]);
+                }
 
                 var assignment = new DIDAWorker.Proto.DIDAAssignment{
                     Operator = new DIDAWorker.Proto.DIDAOperatorID{
@@ -139,23 +133,26 @@ namespace scheduler
                     Output = ""
                 };
                 request.Chain.Add(assignment);
-                this._currentWorkerOrder = this._currentWorkerOrder % this._workers.Count;
+                lock(this){
+                    this._currentWorkerOrder = (this._currentWorkerOrder + 1) % this._workers.Count;
+                }
             }
         }
 
         private void AssignStorageDetails(DIDAWorker.Proto.DIDARequest request){
-            Console.WriteLine("ASSIGNING STORAGE DETAILS");
+            int counter = 1;
             foreach(string storage in this._storages){
                 var storageInfo = this.GetAddressInfo(storage);
                 request.Meta.Storages.Add(
                     new DIDAWorker.Proto.DIDAStorageNodeDetails{
                         Host = storageInfo.Item1,
                         Port = Int32.Parse(storageInfo.Item2),
+                        Id = counter.ToString() //TODO CHANGE THIS: MIXUP WITH SERVER 
                     }
                 );
             }
+
         }
-        
     }
     
 

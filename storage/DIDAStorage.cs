@@ -24,6 +24,12 @@ namespace DIDAStorage
         public DIDARecord Read(string id, DIDAVersion version)
         {
             //First check if we have an entry with this ID
+            if(this._debug){
+                Console.WriteLine("\nSTORAGE: Processing Read Request with the following parameters: ");
+                Console.WriteLine("ID: " + id);
+                Console.WriteLine("Version Number: " + version.versionNumber);
+                Console.WriteLine("Replica ID: " + version.replicaId);
+            }
             if (this._values.ContainsKey(id))
             {
                 DIDAValue dValue = FindValue(id, version);
@@ -31,10 +37,19 @@ namespace DIDAStorage
                 {
                     return new DIDARecord { id = id, version = dValue.version, val = dValue.value };
                 }
+                if(this._debug){
+                    Console.WriteLine("STORAGE: Could not find version of record {0} with: \nVersion Number: {1}\nReplica ID: {2}",
+                     id, 
+                     version.versionNumber, 
+                     version.replicaId);
+                }
                 throw (new Exceptions.NoSuchVersionException(id, version));
             }
             else
             {
+                if(this._debug){
+                    Console.WriteLine("STORAGE: Could not find record with ID: " + id);
+                }
                 throw (new Exceptions.NoSuchRecordException(id));
             }
         }
