@@ -14,8 +14,6 @@ namespace worker
     {
         List<DIDAStorageNode> storageReplicas = new List<DIDAStorageNode>();
 
-        private bool areThereNewStorages = false;
-
         delLocateStorageId locationFunction;
 
         private int operatorCounter = 0;
