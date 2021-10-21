@@ -8,6 +8,7 @@ service PuppetMasterService {
   rpc listGlobal(PmListGlobalRequest) returns (PmListGlobalReply);
   rpc listServerPcs(PmListServerPcsRequest) returns (PmListServerPcsReply);
   rpc listServer(PmListServerRequest) returns (PmListServerReply);
+  rpc runApplication(PmRunApplicationRequest) returns (PmRunApplicationReply);
 }
 
 message PmCreateWorkerRequest {
@@ -73,4 +74,16 @@ message PmListServerRequest {
 message PmListServerReply {
   bool ok = 1;
   repeated string objects = 2; //need to check this to fit all info
+}
+
+message PmRunApplicationRequest {
+  string input = 1;
+  string filePath = 2;
+  repeated string workers = 3;
+  repeated string storages = 4;
+  string schedulerUrl = 5;
+}
+
+message PmRunApplicationReply {
+  bool ok = 1;
 }

@@ -48,7 +48,7 @@ namespace PuppetMaster
             var pcsClient = new PcsClient(request.Url);
             var response = pcsClient.CreateScheduler(counter, false);
             
-            return await Task.FromResult(new PmCreateSchedulerReply {Result = response.Result});
+            return await Task.FromResult(new PmCreateSchedulerReply {Ok = response.Ok, Result = response.Result});
         }
 
         public override async Task<PmCheckStatusReply> checkStatus(PmCheckStatusRequest request, ServerCallContext context)
@@ -76,6 +76,13 @@ namespace PuppetMaster
             var response = pcsClient.ListServer(request.Id);
 
             return await Task.FromResult(new PmListServerReply {Objects = {response.Objects}});
+        }
+
+        public override async Task<PmRunApplicationReply> runApplication(PmRunApplicationRequest request, ServerCallContext context)
+        {
+            var schedulerClient = new SchedulerClient(request.SchedulerUrl);
+            var response = schedulerClient.SchedulerRunApplication(request);
+            return await Task.FromResult(new PmRunApplicationReply {Ok = response.Ok});
         }
     }
 }
