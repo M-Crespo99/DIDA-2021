@@ -4,6 +4,7 @@ using Grpc.Net.Client;
 using System.Reflection;
 using System.IO;
 using System;
+using System.Collections.Generic;
 using DIDAWorker;
 using DIDAWorker.Proto;
 
@@ -11,13 +12,25 @@ namespace worker
 {
     public class WorkerServiceImpl : DIDAWorkerService.DIDAWorkerServiceBase
     {
-        DIDAStorageNode[] storageReplicas;
+        List<DIDAStorageNode> storageReplicas = new List<DIDAStorageNode>();
         delLocateStorageId locationFunction;
+
         public async override Task<DIDAReply> workOnOperator(DIDAWorker.Proto.DIDARequest request, ServerCallContext context)
         {
+            foreach (var storageNode in request.Meta.Storages)
+            {
+                var node = new DIDAStorageNode();
+
+                node.serverId = storageNode.Id;
+                node.host = storageNode.Host;
+                node.port = storageNode.Port;
+
+                storageReplicas.Add(node);
+            }
+
             string className = request.Chain[request.Next].Operator.Classname;
             string dllNameTermination = ".dll";
-            string currWorkingDir = Directory.GetCurrentDirectory();
+            string currWorkingDir = Directory.GetCurrentDirectory() + "/../../../Operators";
             IDIDAOperator operatorFromReflection;
 
             foreach (string filename in Directory.EnumerateFiles(currWorkingDir))
@@ -35,7 +48,7 @@ namespace worker
                             var metaRecord = ConvertToWorkerMetaRecord(request.Meta);
                             string previousOutput = request.Next == 0 ? "" : request.Chain[request.Next - 1].Output;
                             
-                            operatorFromReflection.ConfigureStorage(storageReplicas, locationFunction);
+                            operatorFromReflection.ConfigureStorage(storageReplicas.ToArray(), locationFunction);
                             string newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                             
                             request.Chain[request.Next].Output = newOutput;
