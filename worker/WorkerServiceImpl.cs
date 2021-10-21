@@ -4,6 +4,7 @@ using Grpc.Net.Client;
 using System.Reflection;
 using System.IO;
 using System;
+using System.Collections.Generic;
 using DIDAWorker;
 using DIDAWorker.Proto;
 
@@ -11,31 +12,62 @@ namespace worker
 {
     public class WorkerServiceImpl : DIDAWorkerService.DIDAWorkerServiceBase
     {
-        DIDAStorageNode[] storageReplicas;
+        List<DIDAStorageNode> storageReplicas = new List<DIDAStorageNode>();
         delLocateStorageId locationFunction;
+
         public async override Task<DIDAReply> workOnOperator(DIDAWorker.Proto.DIDARequest request, ServerCallContext context)
         {
+            Console.WriteLine("Running a work Operator");
+            Console.WriteLine("WORKER: REQUEST: " + request.ToString());
+
+            Console.WriteLine("WORKER: REQUEST: {" + request.Next+ " }");
+
+            foreach (var storageNode in request.Meta.Storages)
+            {
+                var node = new DIDAStorageNode();
+
+                node.serverId = storageNode.Id;
+                node.host = storageNode.Host;
+                node.port = storageNode.Port;
+
+                storageReplicas.Add(node);
+            }
+
             string className = request.Chain[request.Next].Operator.Classname;
+            Console.WriteLine("WORKER: Afer Chain " + className);
+
             string dllNameTermination = ".dll";
             string currWorkingDir = Directory.GetCurrentDirectory();
-            IDIDAOperator operatorFromReflection;
+            Console.WriteLine("WORKER currWorkingDir" + currWorkingDir);
 
-            foreach (string filename in Directory.EnumerateFiles(currWorkingDir))
+            IDIDAOperator operatorFromReflection;
+            var argument = Environment.CurrentDirectory.
+                    Replace("PuppetMaster", "worker");
+            Console.WriteLine("WORKER Argument" + argument);
+            string dllDirectory =  String.Format("{0}/Operators/", argument);
+            Console.WriteLine("WORKER: + " + dllDirectory);
+            foreach (string filename in Directory.EnumerateFiles(dllDirectory))
             {
                 if (filename.EndsWith(dllNameTermination))
                 {
+                    Console.WriteLine("WORKER: FOUND A DLL");
                     Assembly dll = Assembly.LoadFrom(filename);
                     Type[] typeList = dll.GetTypes();
                     foreach (Type type in typeList)
                     {
                         if (type.Name == className)
                         {
+                            Console.WriteLine("WORKER: FOUND CLASS");
                             operatorFromReflection = (IDIDAOperator) Activator.CreateInstance(type);
                             
                             var metaRecord = ConvertToWorkerMetaRecord(request.Meta);
                             string previousOutput = request.Next == 0 ? "" : request.Chain[request.Next - 1].Output;
                             
-                            operatorFromReflection.ConfigureStorage(storageReplicas, locationFunction);
+                            Console.WriteLine("Configuring Storage");
+                            
+                            operatorFromReflection.ConfigureStorage(storageReplicas.ToArray(), locationFunction);
+                            
+                            Console.WriteLine("Processing Record");
                             string newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                             
                             request.Chain[request.Next].Output = newOutput;

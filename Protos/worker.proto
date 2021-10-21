@@ -41,6 +41,7 @@ message LivenessCheckReply {
 }
 
 message DIDAStorageNodeDetails{
-  string host = 1;
-  int32 port = 2;
+  string id = 1;
+  string host = 2;
+  int32 port = 3;
 }
