@@ -2,14 +2,11 @@ using System;
 using System.Threading.Tasks;
 using Grpc.Core;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using static DIDASchedulerService;
 using System.Linq;
 
 namespace scheduler
 {
-
-
     public class SchedulerServiceImpl : DIDASchedulerServiceBase
     {
 
@@ -43,7 +40,6 @@ namespace scheduler
 
             this.ScheduleOperators(newRequest, operators);
             this.AssignStorageDetails(newRequest);
-
 
             WorkerFrontend.Frontend workerFrontend = new WorkerFrontend.Frontend(newRequest.Chain.First().Host, newRequest.Chain.First().Port);
 
