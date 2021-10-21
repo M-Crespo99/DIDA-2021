@@ -36,9 +36,7 @@ namespace PuppetMaster
                 Workers = { pmRunApplicationRequest.Workers },
                 FilePath = pmRunApplicationRequest.FilePath
             };
-            Console.WriteLine(request);
             var response = client.runApplicationAsync(request).GetAwaiter().GetResult();
-            Console.WriteLine(response.Ok);
             ShutdownChannel();
             return new PmRunApplicationReply {Ok = response.Ok};
         }

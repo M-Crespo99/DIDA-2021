@@ -18,13 +18,17 @@ namespace worker
 
         delLocateStorageId locationFunction;
 
+        private int operatorCounter = 0;
+
         public WorkerServiceImpl(){
             this.locationFunction = new delLocateStorageId(this.locateStorage);
         }
 
         public async override Task<DIDAReply> workOnOperator(DIDAWorker.Proto.DIDARequest request, ServerCallContext context)
         {
-
+            lock(this){
+                operatorCounter++;
+            }
             List<DIDAStorageNode> newStorages = new List<DIDAStorageNode>();            
             foreach (var storageNode in request.Meta.Storages)
             {
@@ -78,7 +82,6 @@ namespace worker
                             if (request.Next < request.ChainSize)
                             {
                                 var nextWorkerAssignment = request.Chain[request.Next];
-                                Console.WriteLine("http://" + nextWorkerAssignment.Host + ":" + nextWorkerAssignment.Port);
                                 GrpcChannel channel = GrpcChannel.ForAddress("http://" + nextWorkerAssignment.Host + ":" + nextWorkerAssignment.Port);
                                 var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);
                                 var newRequest = new DIDAWorker.Proto.DIDARequest(request);
@@ -118,15 +121,10 @@ namespace worker
         }
 
         private DIDAWorker.DIDAStorageNode locateStorage(string id, DIDAWorker.OperationType type){
-            Console.WriteLine("\nRUNNING FROM LOCATE STORAGE");
-
+            //This is temporary. There is only one storage with id = 1, for now.
             return new DIDAWorker.DIDAStorageNode{
                 serverId = "1",
             };
-        }
-
-        private List<DIDAStorageNode> getNewStorages(List<DIDAStorageNode> oldStorages, List<DIDAStorageNode> newStorages){
-            return newStorages.Except(oldStorages).ToList();
         }
     }
 }
