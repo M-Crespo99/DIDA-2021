@@ -12,9 +12,10 @@ service PuppetMasterService {
 }
 
 message PmCreateWorkerRequest {
-  string url = 1;
-  int32 gossip_delay = 2;
-  bool debug = 3;
+  int32 id = 1;
+  string url = 2;
+  int32 gossip_delay = 3;
+  bool debug = 4;
 }
 
 message PmCreateWorkerReply {
@@ -34,7 +35,8 @@ message PmCreateStorageReply {
 }
 
 message PmCreateSchedulerRequest {
-  string url = 1;
+  int32 id = 1;
+  string url = 2;
 }
 
 message PmCreateSchedulerReply {
