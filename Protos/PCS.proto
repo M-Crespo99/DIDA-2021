@@ -13,9 +13,9 @@ service PCSService {
 
 message PCSRunWorkerRequest {
 	string id = 1;  // the id of the object being read
-//	string url = 2;
   int32 gossip_delay = 2;
   bool debug = 3;
+  string url = 4;
 }
 
 message PCSRunWorkerReply {
@@ -28,6 +28,7 @@ message PCSRunStorageRequest {
 //	  string port = 2;
     int32 gossip_delay = 2;
     bool debug = 3;
+    string url = 4;
 }
 
 message PCSRunStorageReply {
@@ -38,6 +39,7 @@ message PCSRunStorageReply {
 message PCSRunSchedulerRequest {
   string id = 1;  // the id of the object being read
   bool debug = 2;
+  string url = 3;
 }
 
 message PCSRunSchedulerReply {

@@ -15,9 +15,10 @@ namespace PCS
         private static readonly int ConcurrencyLevel = NumProcs * 2;
         private static int _port = 5000;
         
-        private readonly ConcurrentDictionary<int, string> _idWorker = new (ConcurrencyLevel, 100);
-        private readonly ConcurrentDictionary<int, string> _idHostStorage = new (ConcurrencyLevel, 100);
-        private readonly ConcurrentDictionary<int, string> _idScheduler = new (ConcurrencyLevel, 100);
+        private readonly ConcurrentDictionary<string, string> _idWorker = new (ConcurrencyLevel, 100);
+        private readonly ConcurrentDictionary<string, string> _idHostStorage = new (ConcurrencyLevel, 100);
+        private readonly ConcurrentDictionary<string, string> _idScheduler = new (ConcurrencyLevel, 100);
+        private readonly string [] _schedulers = new string[10];
         public override async Task<PCSRunWorkerReply> runWorker(PCSRunWorkerRequest request, ServerCallContext context)
         {
             Console.WriteLine("## Creating Worker ##");
@@ -26,16 +27,21 @@ namespace PCS
 
             try
             {
-                var newPort = Interlocked.Increment(ref _port);
+                // var newPort = Interlocked.Increment(ref _port);
                 
                 var dir = Environment.CurrentDirectory
                     .Replace("PuppetMaster", "worker")
                     .Replace("PCS", "worker");
+                
+                var newPort = request.Url
+                    .Replace("http://", "")
+                    .Replace("https://", "")
+                    .Split(":")[1];
 
                 var argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1}", dir, newPort);
 
                 executeRunCommand("dotnet", argument);
-                _idWorker.TryAdd(int.Parse(request.Id), String.Format("localhost:{0}", newPort));
+                _idWorker.TryAdd(request.Id, String.Format("localhost:{0}", newPort));
                 
                 return await Task.FromResult(new PCSRunWorkerReply {Ok = true});
             }
@@ -61,17 +67,22 @@ namespace PCS
 
             try
             {
-                var newPort = Interlocked.Increment(ref _port);
+                // var newPort = Interlocked.Increment(ref _port);
                 
                 var dir = Environment.CurrentDirectory
                     .Replace("PuppetMaster", "storage")
                     .Replace("PCS", "storage");
+                
+                var newPort = request.Url
+                    .Replace("http://", "")
+                    .Replace("https://", "")
+                    .Split(":")[1];
 
                 var host = String.Format("localhost:{0}", newPort);
 
-                var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, host , request.GossipDelay);
+                var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);
                 executeRunCommand("dotnet", argument);
-                _idHostStorage.TryAdd(int.Parse(request.Id), host);
+                _idHostStorage.TryAdd(request.Id, request.Url);
 
                 return await Task.FromResult(new PCSRunStorageReply {Ok = true});
             }
@@ -90,15 +101,21 @@ namespace PCS
 
             try
             {
-                var newPort = Interlocked.Increment(ref _port);
+                // var newPort = Interlocked.Increment(ref _port);
 
                var dir = Environment.CurrentDirectory
                     .Replace("PuppetMaster", "scheduler")
                     .Replace("PCS", "scheduler");
-                    
+               
+                var newPort = request.Url
+                    .Replace("http://", "")
+                    .Replace("https://", "")
+                    .Split(":")[1];
+                
                 var argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, newPort);
                 executeRunCommand("dotnet", argument);
-                _idScheduler.TryAdd(int.Parse(request.Id), String.Format("localhost:{0}", newPort));
+                _idScheduler.TryAdd(request.Id, String.Format("localhost:{0}", newPort));
+                _schedulers[0] = request.Url;
                 
                 return await Task.FromResult(new PCSRunSchedulerReply {Ok = true});
             }
@@ -110,26 +127,26 @@ namespace PCS
         }
 
         //Lists all objects stored on the server identified by server id
-        public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
-        {
-            Console.WriteLine("## Listing server with the ID: ##"+request.Id);
-            Console.WriteLine(request.ToString());
-            Console.WriteLine("## ------ ##");
-            List<string> objects = new List<string>();
-            
-            if (_idHostStorage[request.Id] != null)
-            {
-                var client = new Client(_idHostStorage[request.Id]);
-                var result = client.ListServerStorage();
-                foreach (var didaCompleteRecord in result.Records)
-                {
-                    objects.Add(didaCompleteRecord.ToString());
-                }
-                Console.WriteLine(objects);
-                return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
-            }
-            return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
-        }
+        // public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
+        // {
+        //     Console.WriteLine("## Listing server with the ID: ##"+request.Id);
+        //     Console.WriteLine(request.ToString());
+        //     Console.WriteLine("## ------ ##");
+        //     List<string> objects = new List<string>();
+        //     
+        //     if (_idHostStorage[request.Id] != null)
+        //     {
+        //         var client = new Client(_idHostStorage[request.Id]);
+        //         var result = client.ListServerStorage();
+        //         foreach (var didaCompleteRecord in result.Records)
+        //         {
+        //             objects.Add(didaCompleteRecord.ToString());
+        //         }
+        //         Console.WriteLine(objects);
+        //         return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
+        //     }
+        //     return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
+        // }
 
         // Lists all objects stored on the system.
         public override async Task<PcsListGlobalReply> listGlobal(PcsListGlobalRequest request, ServerCallContext context)
@@ -151,7 +168,7 @@ namespace PCS
 
         public override async Task<PcsGetSchedulerReply> getScheduler(PcsGetSchedulerRequest request, ServerCallContext context)
         {
-            return await Task.FromResult(new PcsGetSchedulerReply {Scheduler = _idScheduler[0]});
+            return await Task.FromResult(new PcsGetSchedulerReply {Scheduler = _schedulers[0]});
         }
     }
 }
