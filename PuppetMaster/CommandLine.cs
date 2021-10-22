@@ -1,9 +1,24 @@
+using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace PuppetMaster
 {
     public class CommandLine
     {
+        private static readonly int NumProcs = Environment.ProcessorCount;
+        private static readonly int ConcurrencyLevel = NumProcs * 2;
+        private static int _counter;
+        
+        private readonly ConcurrentDictionary<int, string> _worker = new (ConcurrencyLevel, 100);
+        private readonly ConcurrentDictionary<int, string> _storage = new (ConcurrencyLevel, 100);
+        private readonly ConcurrentDictionary<int, string> _scheduler = new (ConcurrencyLevel, 100);
+        private readonly ConcurrentDictionary<int, string> _pcs = new (ConcurrencyLevel, 100);
+
+        private void getWorkersByPcsUrl(string url)
+        {
+            
+        }
         public async Task<PmCreateWorkerReply> createWorker(PmCreateWorkerRequest request)
         {
             var pcsClient = new PcsClient(request.Url);
@@ -55,9 +70,21 @@ namespace PuppetMaster
             return await Task.FromResult(new PmListServerReply {Objects = {response.Objects}});
         }
 
-        public async Task<PmRunApplicationReply> runApplication(PmRunApplicationRequest request)
+        public async Task<PmRunApplicationReply> runApplication(string input, string filePath)
         {
-            var schedulerClient = new SchedulerClient(request.SchedulerUrl);
+            var pcsClient = new PcsClient("localhost:10000");
+            var scheduler = pcsClient.getScheduler().Scheduler;
+            var schedulerClient = new SchedulerClient(scheduler);
+            var workers = pcsClient.getWorkers().Workers;
+            var storages = pcsClient.getStorages().Storages;
+            var request = new PmRunApplicationRequest
+            {
+                Input = input,
+                FilePath = filePath,
+                Workers = { workers },
+                Storages = { storages },
+                SchedulerUrl = scheduler
+            };
             var response = schedulerClient.SchedulerRunApplication(request);
             return await Task.FromResult(new PmRunApplicationReply {Ok = response.Ok});
         }

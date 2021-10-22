@@ -65,6 +65,33 @@ namespace PuppetMaster
             return response;
         }
         
+        public PcsGetWorkersReply getWorkers()
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            var response = client.getWorkersAsync(new PcsGetWorkersRequest()).GetAwaiter().GetResult();
+            Console.WriteLine(response.Workers);
+            ShutdownChannel();
+            return response;
+        }
+        
+        public PcsGetStoragesReply getStorages()
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            var response = client.getStoragesAsync(new PcsGetStoragesRequest()).GetAwaiter().GetResult();
+            Console.WriteLine(response.Storages);
+            ShutdownChannel();
+            return response;
+        }
+        
+        public PcsGetSchedulerReply getScheduler()
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            var response = client.getSchedulerAsync(new PcsGetSchedulerRequest()).GetAwaiter().GetResult();
+            Console.WriteLine(response.Scheduler);
+            ShutdownChannel();
+            return response;
+        }
+        
         private void ShutdownChannel()
         {
             _channel.ShutdownAsync().Wait();

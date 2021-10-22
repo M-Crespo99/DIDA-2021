@@ -52,6 +52,21 @@ namespace PuppetMaster
         }
         return;
         }
+        private static void ShowTitle()
+        {
+            Console.WriteLine("### Puppet Master App ###\r");
+            Console.WriteLine("------------------------\n");
+        }
+        private static void ShowMenu()
+        {
+            Console.WriteLine("Choose an operation from the following list:");
+            Console.WriteLine("\tw - Create Worker");
+            Console.WriteLine("\ts - Create Storage");
+            Console.WriteLine("\tsch - Create Scheduler");
+            Console.WriteLine("\tr - Run Application");
+            Console.WriteLine("\tp - Populate");
+            Console.Write("Your option? ");
+        }
 
         private static void SelectOption(string operation)
         {
@@ -68,6 +83,10 @@ namespace PuppetMaster
                     ShowSubMenuScheduler();
                     break;
                 case "r":
+                    ShowSubMenuRunApplication();
+                    break;
+                case "p":
+                    
                     break;
                 // Return text for an incorrect option entry.
                 default:
@@ -77,14 +96,14 @@ namespace PuppetMaster
 
         private static async void ShowSubMenuWorker()
         {
-            Console.WriteLine("Create a new Worker as follows: server_id,url,gossip_delay and press enter:");
-            Console.WriteLine("\texample: 123,localhost:10000,200");
+            Console.WriteLine("Create a new Worker as follows: server_id url gossip_delay and press enter:");
+            Console.WriteLine("\texample: 123 localhost:10000 200");
             Console.WriteLine("\t--------------------------------------------------------------------");
             var parameter = Console.ReadLine();
             
             if (parameter != null)
             {
-                var parameters = parameter.Split(",");
+                var parameters = parameter.Split(" ");
                 if (parameters.Length == 3)
                 {
                     var commandLine = new CommandLine();
@@ -99,12 +118,12 @@ namespace PuppetMaster
         private static async void ShowSubMenuStorage()
         {
             Console.WriteLine("Create a new Storage as follows: server_id,url,gossip_delay and press enter:");
-            Console.WriteLine("\texample: 123,localhost:10000,200");
+            Console.WriteLine("\texample: 123 localhost:10000 200");
             Console.WriteLine("\t---------------------------------------------------------------------");
             var parameter = Console.ReadLine();
             if (parameter != null)
             {
-                var parameters = parameter.Split(",");
+                var parameters = parameter.Split(" ");
                 if (parameters.Length == 3)
                 {
                     var commandLine = new CommandLine();
@@ -118,37 +137,41 @@ namespace PuppetMaster
         
         private static async void ShowSubMenuScheduler()
         {
-            Console.WriteLine("Create a new Scheduler as follows: server_id,url and press enter:");
-            Console.WriteLine("\texample: 123,localhost:10000");
+            Console.WriteLine("Create a new Scheduler as follows: server_id url and press enter:");
+            Console.WriteLine("\texample: 123 localhost:10000");
             Console.WriteLine("\t---------------------------------------------------------");
             var parameter = Console.ReadLine();
             if (parameter != null)
             {
-                var parameters = parameter.Split(",");
+                var parameters = parameter.Split(" ");
                 if (parameters.Length == 2)
                 {
                     var commandLine = new CommandLine();
-                    var request = new PmCreateSchedulerRequest() {Id = int.Parse(parameters[0]), Url = parameters[1]};
+                    var request = new PmCreateSchedulerRequest {Id = int.Parse(parameters[0]), Url = parameters[1]};
                     var result = await Task.FromResult(commandLine.createScheduler(request));
                     Console.WriteLine(result.Result);
                 }
             }
         }
-
-        private static void ShowMenu()
+        
+        private static async void ShowSubMenuRunApplication()
         {
-            Console.WriteLine("Choose an operation from the following list:");
-            Console.WriteLine("\tw - Create Worker");
-            Console.WriteLine("\ts - Create Storage");
-            Console.WriteLine("\tsch - Create Scheduler");
-            Console.WriteLine("\tr - Run Application");
-            Console.Write("Your option? ");
-        }
-
-        private static void ShowTitle()
-        {
-            Console.WriteLine("### Puppet Master App ###\r");
-            Console.WriteLine("------------------------\n");
+            Console.WriteLine("Run application as follows: input, file_path and press enter:");
+            Console.WriteLine("\texample: 1234 /usr/share");
+            Console.WriteLine("\t---------------------------------------------------------");
+            var parameter = Console.ReadLine();
+            if (parameter != null)
+            {
+                var parameters = parameter.Split(" ");
+                if (parameters.Length == 2)
+                {
+                    var commandLine = new CommandLine();
+                    Console.WriteLine(parameters);
+                    
+                    var result = await Task.FromResult(commandLine.runApplication(parameters[0], parameters[1]));
+                    Console.WriteLine(result.Result);
+                }
+            }
         }
 
         private static void StartPuppetMasterAsGrpcServer()
