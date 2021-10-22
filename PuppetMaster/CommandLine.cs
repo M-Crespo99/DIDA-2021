@@ -8,7 +8,6 @@ namespace PuppetMaster
     {
         private static readonly int NumProcs = Environment.ProcessorCount;
         private static readonly int ConcurrencyLevel = NumProcs * 2;
-        private static int _counter;
         private static string _pcsUrl = "localhost:10000";
         
         private readonly ConcurrentDictionary<int, string> _worker = new (ConcurrencyLevel, 100);
