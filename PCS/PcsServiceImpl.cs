@@ -37,8 +37,17 @@ namespace PCS
                     .Replace("http://", "")
                     .Replace("https://", "")
                     .Split(":")[1];
-
-                var argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1}", dir, newPort);
+                var argument = "";
+                if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
+                {
+                    argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1}", dir, newPort);    
+                }
+                else
+                {
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\worker.dll {1}", dir, newPort);
+                }
+                
+                
 
                 executeRunCommand("dotnet", argument);
                 _idWorker.TryAdd(request.Id, request.Url);
@@ -80,7 +89,17 @@ namespace PCS
 
                 var host = String.Format("localhost:{0}", newPort);
 
-                var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);
+                var argument = "";
+                if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
+                {
+                    argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);    
+                }
+                else
+                {
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);
+                }
+                
+                
                 executeRunCommand("dotnet", argument);
                 _idHostStorage.TryAdd(request.Id, request.Url);
 
@@ -112,7 +131,16 @@ namespace PCS
                     .Replace("https://", "")
                     .Split(":")[1];
                 
-                var argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, newPort);
+                var argument = "";
+                if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
+                {
+                    argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, newPort);    
+                }
+                else
+                {
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\scheduler.dll {1}", dir, newPort);
+                }
+                
                 executeRunCommand("dotnet", argument);
                 _idScheduler.TryAdd(request.Id, request.Url);
                 _schedulers[0] = request.Url;
