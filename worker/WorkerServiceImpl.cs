@@ -24,6 +24,7 @@ namespace worker
 
         public async override Task<DIDAReply> workOnOperator(DIDAWorker.Proto.DIDARequest request, ServerCallContext context)
         {
+            Console.WriteLine("ENTERED WORKER");
             lock(this){
                 operatorCounter++;
             }
@@ -45,7 +46,7 @@ namespace worker
 
             
             var argument = Environment.CurrentDirectory.
-                    Replace("PuppetMaster", "worker");
+                    Replace("PuppetMaster", "worker").Replace("PCS", "worker");
             string dllDirectory =  String.Format("{0}/Operators/", argument);
             
             bool foundDLL = false;
@@ -61,6 +62,8 @@ namespace worker
 
                         if (type.Name == className)
                         {
+                            Console.WriteLine("Found the operator: " + className);
+
                             foundDLL = true;
                             IDIDAOperator operatorFromReflection = (IDIDAOperator) Activator.CreateInstance(type);
                             
@@ -70,6 +73,7 @@ namespace worker
 
                             string newOutput = "";
                             try{
+                                Console.WriteLine("Going to storage");
                                 operatorFromReflection.ConfigureStorage(storageReplicas.ToArray(), locationFunction);                            
                                 newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                             }catch(RpcException e){

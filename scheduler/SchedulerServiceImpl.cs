@@ -20,6 +20,7 @@ namespace scheduler
         private int _idCounter = 0;
         public override async Task<DIDARunApplicationReply> runApplication(DIDARunApplicationRequest request, ServerCallContext context)
         {
+            Console.WriteLine("ENTERED SCHEDULER");
             this.ParseServers(this._workers, request.Workers.ToList());
             this.ParseServers(this._storages, request.Storages.ToList());
             //Get the operators
@@ -75,8 +76,8 @@ namespace scheduler
             string[] lines;
             
             var argument = Environment.CurrentDirectory.
-                    Replace("PuppetMaster", "scheduler");
-            argument.Replace("PCS", "scheduler");
+                    Replace("PCS", "scheduler").Replace("PuppetMaster", "scheduler");
+
             string fileDir =  String.Format("{0}/scripts/operator_scripts/", argument);
 
             filePath = fileDir + filePath;

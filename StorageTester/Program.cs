@@ -7,8 +7,12 @@ namespace StorageTester
         static void Main(string[] args)
 
         {
+            if(args.Length != 1){
+                Console.WriteLine("Please provide port");
+                return;
+            }
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-            StorageFrontend.StorageFrontend frontend = new StorageFrontend.StorageFrontend("localhost", 5001, true);
+            StorageFrontend.StorageFrontend frontend = new StorageFrontend.StorageFrontend("localhost", Int32.Parse(args[0]), true);
             Console.Write("> ");
             string input;
             while((input = Console.ReadLine()) != "quit"){
