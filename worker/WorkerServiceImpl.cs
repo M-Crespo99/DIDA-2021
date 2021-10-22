@@ -47,6 +47,9 @@ namespace worker
             var argument = Environment.CurrentDirectory.
                     Replace("PuppetMaster", "worker");
             string dllDirectory =  String.Format("{0}/Operators/", argument);
+            
+            bool foundDLL = false;
+
             foreach (string filename in Directory.EnumerateFiles(dllDirectory))
             {
                 if (filename.EndsWith(dllNameTermination))
@@ -58,6 +61,7 @@ namespace worker
 
                         if (type.Name == className)
                         {
+                            foundDLL = true;
                             IDIDAOperator operatorFromReflection = (IDIDAOperator) Activator.CreateInstance(type);
                             
                             var metaRecord = ConvertToWorkerMetaRecord(request.Meta);
@@ -90,6 +94,11 @@ namespace worker
                     }
                 }
             }
+
+            if(!foundDLL){
+                Console.WriteLine("ERROR: Could not locate operator: " + className);
+            }
+
             return await Task.FromResult(new DIDAReply());
         }
         

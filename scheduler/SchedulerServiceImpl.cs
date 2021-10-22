@@ -25,6 +25,10 @@ namespace scheduler
             //Get the operators
             var operators = this.ReadApplicationFile(request.FilePath);
             //sort them
+
+            if(operators == null){
+                return await Task.FromResult(new DIDARunApplicationReply{Ok = false});
+            }
             operators = operators.OrderBy(op => op.Item2).ToList();
             
             DIDAWorker.Proto.DIDARequest newRequest = new DIDAWorker.Proto.DIDARequest();
@@ -69,12 +73,19 @@ namespace scheduler
 
         private List<Tuple<string, int>> ReadApplicationFile(string filePath){
             string[] lines;
+            
+            var argument = Environment.CurrentDirectory.
+                    Replace("PuppetMaster", "scheduler");
+            argument.Replace("PCS", "scheduler");
+            string fileDir =  String.Format("{0}/scripts/operator_scripts/", argument);
+
+            filePath = fileDir + filePath;
+
             try{
                 lines = System.IO.File.ReadAllLines(filePath);
             }
             catch(Exception e){
-                Console.WriteLine("SCHEDULER: FAILED TO READ FILE: " + e.ToString());
-                Environment.Exit(1);
+                Console.WriteLine("SCHEDULER: Failed to read file application file:\n " + filePath);
                 return null;
             }
             var listToReturn = new List<Tuple<string, int>>();
@@ -93,11 +104,6 @@ namespace scheduler
             foreach(string node in nodes){
                 if(!listToAdd.Contains(node)){
                     listToAdd.Add(node);
-                }
-                else{
-                    if(this._verbose){
-                        Console.WriteLine("WARNING: could not parse node: {0}", node);
-                    }
                 }
             }
         }
