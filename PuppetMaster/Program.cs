@@ -88,7 +88,7 @@ namespace PuppetMaster
                 case "scheduler":
                     ShowSubMenuScheduler(operation);
                     break;
-                case "r":
+                case "client":
                     ShowSubMenuRunApplication(operation);
                     break;
                 case "populate":
@@ -169,7 +169,7 @@ namespace PuppetMaster
             if (command != null)
             {
                 var parameters = command.Split(" ");
-                if (parameters.Length == 4)
+                if (parameters.Length == 3)
                 {
                     var commandLine = new CommandLine();
                     Console.WriteLine(parameters);
