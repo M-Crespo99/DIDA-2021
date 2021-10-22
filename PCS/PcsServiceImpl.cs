@@ -84,7 +84,6 @@ namespace PCS
                 var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);
                 executeRunCommand("dotnet", argument);
                 _idHostStorage.TryAdd(request.Id, request.Url);
-                _storages.Add(request.Url);
 
                 return await Task.FromResult(new PCSRunStorageReply {Ok = true});
             }
