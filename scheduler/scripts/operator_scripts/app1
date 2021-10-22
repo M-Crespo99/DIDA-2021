@@ -1,1 +1,5 @@
 operator DIDAReader 0
+operator DIDAReader 1
+operator DIDAReader 2
+operator DIDAReader 3
+operator DIDAReader 4
