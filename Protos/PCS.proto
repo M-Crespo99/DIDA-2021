@@ -6,6 +6,9 @@ service PCSService {
   rpc runScheduler(PCSRunSchedulerRequest) returns (PCSRunSchedulerReply);
   rpc listServer(PcsListServerRequest) returns (PcsListServerReply);
   rpc listGlobal(PcsListGlobalRequest) returns (PcsListGlobalReply);
+  rpc getStorages(PcsGetStoragesRequest) returns (PcsGetStoragesReply);
+  rpc getWorkers(PcsGetWorkersRequest) returns (PcsGetWorkersReply);
+  rpc getScheduler(PcsGetSchedulerRequest) returns (PcsGetSchedulerReply);
 }
 
 message PCSRunWorkerRequest {
@@ -54,4 +57,22 @@ message PcsListGlobalRequest { }
 
 message PcsListGlobalReply {
   repeated string objects = 1;
+}
+
+message PcsGetStoragesRequest { }
+
+message PcsGetStoragesReply {
+  repeated string storages = 1;
+}
+
+message PcsGetWorkersRequest { }
+
+message PcsGetWorkersReply {
+  repeated string workers = 1;
+}
+
+message PcsGetSchedulerRequest { }
+
+message PcsGetSchedulerReply {
+  string scheduler = 1;
 }
