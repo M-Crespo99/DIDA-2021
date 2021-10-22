@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -41,8 +42,8 @@ namespace PCS
                 var argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1}", dir, newPort);
 
                 executeRunCommand("dotnet", argument);
-                _idWorker.TryAdd(request.Id, String.Format("localhost:{0}", newPort));
-                
+                _idWorker.TryAdd(request.Id, request.Url);
+
                 return await Task.FromResult(new PCSRunWorkerReply {Ok = true});
             }
             catch (Exception e)
@@ -83,6 +84,7 @@ namespace PCS
                 var argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);
                 executeRunCommand("dotnet", argument);
                 _idHostStorage.TryAdd(request.Id, request.Url);
+                _storages.Add(request.Url);
 
                 return await Task.FromResult(new PCSRunStorageReply {Ok = true});
             }
@@ -114,7 +116,7 @@ namespace PCS
                 
                 var argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, newPort);
                 executeRunCommand("dotnet", argument);
-                _idScheduler.TryAdd(request.Id, String.Format("localhost:{0}", newPort));
+                _idScheduler.TryAdd(request.Id, request.Url);
                 _schedulers[0] = request.Url;
                 
                 return await Task.FromResult(new PCSRunSchedulerReply {Ok = true});
@@ -157,7 +159,6 @@ namespace PCS
 
         public override async Task<PcsGetStoragesReply> getStorages(PcsGetStoragesRequest request, ServerCallContext context)
         {
-
             return await Task.FromResult(new PcsGetStoragesReply {Storages = { _idHostStorage.Values }});
         }
 

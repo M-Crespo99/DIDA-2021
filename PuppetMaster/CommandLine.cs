@@ -76,8 +76,10 @@ namespace PuppetMaster
             var pcsClient = new PcsClient(_pcsUrl);
             var scheduler = pcsClient.getScheduler().Scheduler;
             var schedulerClient = new SchedulerClient(scheduler);
-            var workers = pcsClient.getWorkers().Workers;
-            var storages = pcsClient.getStorages().Storages;
+            var pcsClientWorker = new PcsClient(_pcsUrl);
+            var workers = pcsClientWorker.getWorkers().Workers;
+            var pcsClientStorage = new PcsClient(_pcsUrl);
+            var storages = pcsClientStorage.getStorages().Storages;
             var request = new PmRunApplicationRequest
             {
                 Input = input,
