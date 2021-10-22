@@ -9,6 +9,7 @@ namespace PuppetMaster
         private static readonly int NumProcs = Environment.ProcessorCount;
         private static readonly int ConcurrencyLevel = NumProcs * 2;
         private static int _counter;
+        private static string _pcsUrl = "localhost:10000";
         
         private readonly ConcurrentDictionary<int, string> _worker = new (ConcurrencyLevel, 100);
         private readonly ConcurrentDictionary<int, string> _storage = new (ConcurrencyLevel, 100);
@@ -21,24 +22,24 @@ namespace PuppetMaster
         }
         public async Task<PmCreateWorkerReply> createWorker(PmCreateWorkerRequest request)
         {
-            var pcsClient = new PcsClient(request.Url);
-            var response = pcsClient.CreateWorker(request.Id, request.Debug, request.GossipDelay);
+            var pcsClient = new PcsClient(_pcsUrl);
+            var response = pcsClient.CreateWorker(request.Id, request.Debug, request.GossipDelay, request.Url);
             
             return await Task.FromResult(new PmCreateWorkerReply {Ok = response.Ok, Result = response.Result});
         }
 
         public async Task<PmCreateStorageReply> createStorage(PmCreateStorageRequest request)
         {
-            var pcsClient = new PcsClient(request.Url);
-            var response = pcsClient.CreateStorage(request.Id, false, request.GossipDelay);
+            var pcsClient = new PcsClient(_pcsUrl);
+            var response = pcsClient.CreateStorage(request.Id, false, request.GossipDelay, request.Url);
             
             return await Task.FromResult(new PmCreateStorageReply {Ok = response.Ok, Result = response.Result});
         }
 
         public async Task<PmCreateSchedulerReply> createScheduler(PmCreateSchedulerRequest request)
         {
-            var pcsClient = new PcsClient(request.Url);
-            var response = pcsClient.CreateScheduler(request.Id, false);
+            var pcsClient = new PcsClient(_pcsUrl);
+            var response = pcsClient.CreateScheduler(request.Id, false, request.Url);
             
             return await Task.FromResult(new PmCreateSchedulerReply {Ok = response.Ok, Result = response.Result});
         }
@@ -64,7 +65,7 @@ namespace PuppetMaster
         public async Task<PmListServerReply> listServer(PmListServerRequest request)
         {
             //TODO should look into the PCS available and not hard coded below
-            var pcsClient = new PcsClient("localhost:10000");
+            var pcsClient = new PcsClient(_pcsUrl);
             var response = pcsClient.ListServer(request.Id);
 
             return await Task.FromResult(new PmListServerReply {Objects = {response.Objects}});
@@ -72,7 +73,7 @@ namespace PuppetMaster
 
         public async Task<PmRunApplicationReply> runApplication(string input, string filePath)
         {
-            var pcsClient = new PcsClient("localhost:10000");
+            var pcsClient = new PcsClient(_pcsUrl);
             var scheduler = pcsClient.getScheduler().Scheduler;
             var schedulerClient = new SchedulerClient(scheduler);
             var workers = pcsClient.getWorkers().Workers;

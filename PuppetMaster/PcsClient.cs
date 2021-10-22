@@ -25,30 +25,30 @@ namespace PuppetMaster
             return _channel;
         }
 
-        public PCSRunWorkerReply CreateWorker(int id, bool debug, int gossipDelay)
+        public PCSRunWorkerReply CreateWorker(string id, bool debug, int gossipDelay, string url)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
-            var request = new PCSRunWorkerRequest {Id = id.ToString(), Debug = debug, GossipDelay = gossipDelay};
+            var request = new PCSRunWorkerRequest {Id = id, Debug = debug, GossipDelay = gossipDelay, Url = url};
             var response = client.runWorkerAsync(request).GetAwaiter().GetResult();
             Console.WriteLine(response.Result);
             ShutdownChannel();
             return response;
         }
         
-        public PCSRunStorageReply CreateStorage(int id, bool debug, int gossipDelay)
+        public PCSRunStorageReply CreateStorage(string id, bool debug, int gossipDelay, string url)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
-            var request = new PCSRunStorageRequest{Id = id.ToString(), Debug = debug, GossipDelay = gossipDelay};
+            var request = new PCSRunStorageRequest{Id = id, Debug = debug, GossipDelay = gossipDelay, Url = url};
             var response = client.runStorageAsync(request).GetAwaiter().GetResult();
             Console.WriteLine(response.Result);
             ShutdownChannel();
             return response;
         }
         
-        public PCSRunSchedulerReply CreateScheduler(int id, bool debug)
+        public PCSRunSchedulerReply CreateScheduler(string id, bool debug, string url)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
-            var request = new PCSRunSchedulerRequest{Id = id.ToString(), Debug = debug};
+            var request = new PCSRunSchedulerRequest{Id = id, Debug = debug, Url = url};
             var response = client.runSchedulerAsync(request).GetAwaiter().GetResult();
             Console.WriteLine(response.Result);
             ShutdownChannel();

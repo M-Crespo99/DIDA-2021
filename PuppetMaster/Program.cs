@@ -25,17 +25,23 @@ namespace PuppetMaster
         private static void StartCommandLine()
         { 
             bool exit = false;
-            ShowTitle();
+            
 
         while (!exit)
         {
-            ShowMenu();
-
-            string operation = Console.ReadLine();
-
+            ShowTitle();
+            // ShowMenu();
+            string command = Console.ReadLine();
             try
             {
-                SelectOption(operation);
+                
+                if (command != null)
+                {
+                    if (command.Split(" ").Length > 0)
+                    {
+                        SelectOption(command);   
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -60,32 +66,32 @@ namespace PuppetMaster
         private static void ShowMenu()
         {
             Console.WriteLine("Choose an operation from the following list:");
-            Console.WriteLine("\tw - Create Worker");
-            Console.WriteLine("\ts - Create Storage");
-            Console.WriteLine("\tsch - Create Scheduler");
+            Console.WriteLine("\tworker - Create Worker");
+            Console.WriteLine("\tstorage - Create Storage");
+            Console.WriteLine("\tscheduler - Create Scheduler");
             Console.WriteLine("\tr - Run Application");
-            Console.WriteLine("\tp - Populate");
+            Console.WriteLine("\tpopulate - Populate");
             Console.Write("Your option? ");
         }
 
         private static void SelectOption(string operation)
         {
             
-            switch (operation)
+            switch (operation.Split(" ")[0])
             {
-                case "w":
-                    ShowSubMenuWorker();
+                case "worker":
+                    ShowSubMenuWorker(operation);
                     break;
-                case "s":
-                    ShowSubMenuStorage();
+                case "storage":
+                    ShowSubMenuStorage(operation);
                     break;
-                case "sch":
-                    ShowSubMenuScheduler();
+                case "scheduler":
+                    ShowSubMenuScheduler(operation);
                     break;
                 case "r":
-                    ShowSubMenuRunApplication();
+                    ShowSubMenuRunApplication(operation);
                     break;
-                case "p":
+                case "populate":
                     
                     break;
                 // Return text for an incorrect option entry.
@@ -94,81 +100,81 @@ namespace PuppetMaster
             }
         }
 
-        private static async void ShowSubMenuWorker()
+        private static async void ShowSubMenuWorker(string command)
         {
-            Console.WriteLine("Create a new Worker as follows: server_id url gossip_delay and press enter:");
-            Console.WriteLine("\texample: 123 localhost:10000 200");
-            Console.WriteLine("\t--------------------------------------------------------------------");
-            var parameter = Console.ReadLine();
+            // Console.WriteLine("Create a new Worker as follows: server_id url gossip_delay and press enter:");
+            // Console.WriteLine("\texample: 123 localhost:10000 200");
+            // Console.WriteLine("\t--------------------------------------------------------------------");
+            // var parameter = Console.ReadLine();
             
-            if (parameter != null)
+            if (command != null)
             {
-                var parameters = parameter.Split(" ");
-                if (parameters.Length == 3)
+                var parameters = command.Split(" ");
+                if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
                     Console.WriteLine(parameters);
-                    var request = new PmCreateWorkerRequest {Id = int.Parse(parameters[0]), Url = parameters[1], GossipDelay = int.Parse(parameters[2])};
+                    var request = new PmCreateWorkerRequest {Id = parameters[1], Url = parameters[2], GossipDelay = int.Parse(parameters[3])};
                     var result = await Task.FromResult(commandLine.createWorker(request));
                     Console.WriteLine(result.Result);
                 }
             }
         }
         
-        private static async void ShowSubMenuStorage()
+        private static async void ShowSubMenuStorage(string command)
         {
-            Console.WriteLine("Create a new Storage as follows: server_id,url,gossip_delay and press enter:");
-            Console.WriteLine("\texample: 123 localhost:10000 200");
-            Console.WriteLine("\t---------------------------------------------------------------------");
-            var parameter = Console.ReadLine();
-            if (parameter != null)
+            // Console.WriteLine("Create a new Storage as follows: server_id,url,gossip_delay and press enter:");
+            // Console.WriteLine("\texample: 123 localhost:10000 200");
+            // Console.WriteLine("\t---------------------------------------------------------------------");
+            // var parameter = Console.ReadLine();
+            if (command != null)
             {
-                var parameters = parameter.Split(" ");
-                if (parameters.Length == 3)
+                var parameters = command.Split(" ");
+                if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
                     Console.WriteLine(parameters);
-                    var request = new PmCreateStorageRequest {Id = int.Parse(parameters[0]), Url = parameters[1], GossipDelay = int.Parse(parameters[2])};
+                    var request = new PmCreateStorageRequest {Id = parameters[1], Url = parameters[2], GossipDelay = int.Parse(parameters[3])};
                     var result = await Task.FromResult(commandLine.createStorage(request));
                     Console.WriteLine(result.Result);
                 }
             }
         }
         
-        private static async void ShowSubMenuScheduler()
+        private static async void ShowSubMenuScheduler(string command)
         {
-            Console.WriteLine("Create a new Scheduler as follows: server_id url and press enter:");
-            Console.WriteLine("\texample: 123 localhost:10000");
-            Console.WriteLine("\t---------------------------------------------------------");
-            var parameter = Console.ReadLine();
-            if (parameter != null)
+            // Console.WriteLine("Create a new Scheduler as follows: server_id url and press enter:");
+            // Console.WriteLine("\texample: 123 localhost:10000");
+            // Console.WriteLine("\t---------------------------------------------------------");
+            // var parameter = Console.ReadLine();
+            if (command != null)
             {
-                var parameters = parameter.Split(" ");
-                if (parameters.Length == 2)
+                var parameters = command.Split(" ");
+                if (parameters.Length == 3)
                 {
                     var commandLine = new CommandLine();
-                    var request = new PmCreateSchedulerRequest {Id = int.Parse(parameters[0]), Url = parameters[1]};
+                    var request = new PmCreateSchedulerRequest {Id = parameters[1], Url = parameters[2]};
                     var result = await Task.FromResult(commandLine.createScheduler(request));
                     Console.WriteLine(result.Result);
                 }
             }
         }
         
-        private static async void ShowSubMenuRunApplication()
+        private static async void ShowSubMenuRunApplication(string command)
         {
-            Console.WriteLine("Run application as follows: input, file_path and press enter:");
-            Console.WriteLine("\texample: 1234 /usr/share");
-            Console.WriteLine("\t---------------------------------------------------------");
-            var parameter = Console.ReadLine();
-            if (parameter != null)
+            // Console.WriteLine("Run application as follows: input, file_path and press enter:");
+            // Console.WriteLine("\texample: 1234 /usr/share");
+            // Console.WriteLine("\t---------------------------------------------------------");
+            // var parameter = Console.ReadLine();
+            if (command != null)
             {
-                var parameters = parameter.Split(" ");
-                if (parameters.Length == 2)
+                var parameters = command.Split(" ");
+                if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
                     Console.WriteLine(parameters);
                     
-                    var result = await Task.FromResult(commandLine.runApplication(parameters[0], parameters[1]));
+                    var result = await Task.FromResult(commandLine.runApplication(parameters[1], parameters[2]));
                     Console.WriteLine(result.Result);
                 }
             }
