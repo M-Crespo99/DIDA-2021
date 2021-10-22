@@ -14,8 +14,7 @@ namespace PCS
     {
         private static readonly int NumProcs = Environment.ProcessorCount;
         private static readonly int ConcurrencyLevel = NumProcs * 2;
-        private static int _port = 5000;
-        
+
         private readonly ConcurrentDictionary<string, string> _idWorker = new (ConcurrencyLevel, 100);
         private readonly ConcurrentDictionary<string, string> _idHostStorage = new (ConcurrencyLevel, 100);
         private readonly ConcurrentDictionary<string, string> _idScheduler = new (ConcurrencyLevel, 100);
