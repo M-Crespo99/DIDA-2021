@@ -12,9 +12,6 @@ namespace scheduler
 
         private List<string> _storages = new List<string>();
         private List<string> _workers = new List<string>();
-
-        private bool _verbose = true;
-
         private int _currentWorkerOrder = 0;
 
         private int _idCounter = 0;
@@ -85,7 +82,7 @@ namespace scheduler
             try{
                 lines = System.IO.File.ReadAllLines(filePath);
             }
-            catch(Exception e){
+            catch(Exception ){
                 Console.WriteLine("SCHEDULER: Failed to read file application file:\n " + filePath);
                 return null;
             }

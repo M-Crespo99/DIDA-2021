@@ -9,6 +9,14 @@ service DIDAStorageService {
   rpc updateIfValueIs(DIDAUpdateIfRequest) returns (DIDAVersion);
   rpc listServer(DIDAListServerRequest) returns (DIDAListServerReply);
   rpc crashServer(DIDACrashServerRequest) returns (DIDACrashServerReply);
+  rpc status(StatusRequest) returns (StatusReply);
+}
+
+message StatusRequest {
+
+}
+message StatusReply {
+	bool ok = 1;
 }
 
 message DIDACrashServerRequest {
