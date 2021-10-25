@@ -18,31 +18,34 @@ message DIDARequest {
   repeated DIDAAssignment chain = 5;
 }
 
-message StatusRequest{
+message DIDAReply {}
 
-}
+message StatusRequest{}
+
 message StatusReply{
 	bool ok = 1;
-
 }
 
 message DebugRequest{
-
+  string host = 1;
+  int32 port = 2;
 }
 
 message DebugReply{
 	bool ok = 1;
-
 }
+
+message ListServerRequest {}
 
 message ListServerReply{
-	bool ok = 1;
+  repeated DIDAWorkerListDetails details = 1;
 }
 
-message ListServerRequest {
+message DIDAWorkerListDetails {
+  string operatorName = 1;
+  int32 executions = 2;
+  int32 totalTime = 3;
 }
-
-message DIDAReply {}
 
 message DIDAMetaRecord {
   int32 id = 1;
