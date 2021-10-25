@@ -93,7 +93,7 @@ namespace worker
                                 var nextWorkerAssignment = request.Chain[request.Next];
                                 GrpcChannel channel = GrpcChannel.ForAddress("http://" + nextWorkerAssignment.Host + ":" + nextWorkerAssignment.Port);
                                 var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);
-                                var newRequest = new DIDAWorker.Proto.DIDARequest(request);
+                                var newRequest = new DIDARequest(request);
 
                                 client.workOnOperatorAsync(newRequest);
                             }
@@ -140,7 +140,10 @@ namespace worker
 
         private void logDebug(String classname, String output)
         {
-            
+            String resultString = String.Format("Operator {0} was executed with the output {1}", classname, output);
+            GrpcChannel channel = GrpcChannel.ForAddress("http://" + debugHost + ":" + debugPort);
+            var client = new PuppetMasterService.PuppetMasterServiceClient(channel);
+            client.receiveDebugInfoAsync(new DebugInfoRequest {Info = resultString});
         }
 
         public override async Task<LivenessCheckReply> livenessCheck(LivenessCheckRequest request, ServerCallContext context)
