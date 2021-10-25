@@ -4,6 +4,7 @@ using Grpc.Core;
 using System.Collections.Generic;
 using static DIDASchedulerService;
 using System.Linq;
+using System.IO;
 
 namespace scheduler
 {
@@ -14,10 +15,10 @@ namespace scheduler
         private List<string> _workers = new List<string>();
         private int _currentWorkerOrder = 0;
 
+        private bool _verbose = true;
         private int _idCounter = 0;
         public override async Task<DIDARunApplicationReply> runApplication(DIDARunApplicationRequest request, ServerCallContext context)
         {
-            Console.WriteLine("ENTERED SCHEDULER");
             this.ParseServers(this._workers, request.Workers.ToList());
             this.ParseServers(this._storages, request.Storages.ToList());
             //Get the operators
@@ -79,21 +80,34 @@ namespace scheduler
 
             filePath = fileDir + filePath;
 
-            try{
-                lines = System.IO.File.ReadAllLines(filePath);
-            }
-            catch(Exception ){
-                Console.WriteLine("SCHEDULER: Failed to read file application file:\n " + filePath);
+            if(!File.Exists(filePath)){
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write("ERROR");
+                Console.ResetColor();
+                Console.WriteLine(": Could not open application file at: {1}.", filePath);
                 return null;
             }
+            
+            lines = System.IO.File.ReadAllLines(filePath);
+
             var listToReturn = new List<Tuple<string, int>>();
+
+            int currentLine = 1;
             foreach(string line in lines){
                 var parts = line.Split(" ");
 
                 if(parts[0] == "operator" && parts.Length == 3){
                     var currentTuple = new Tuple<string, int>(parts[1], Int32.Parse(parts[2]));
                     listToReturn.Add(currentTuple);
+                }else{
+                    if(this._verbose){
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write("WARNING");
+                        Console.ResetColor();
+                        Console.WriteLine(": Could not parse line {0}: -> {1} <- from file: {2}.", currentLine, line, filePath);
+                    }
                 }
+                currentLine++;
             }
             return listToReturn;
         }
@@ -110,6 +124,13 @@ namespace scheduler
             var parts = URL.Split(":");
             if(parts.Length == 2){
                 return new Tuple<string, string>(parts[0], parts[1]);
+            }else{
+                if(this._verbose){
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.Write("WARNING");
+                    Console.ResetColor();
+                    Console.WriteLine(": Could not parse address \"{1}\".", URL);
+                }
             }
             return null;
         }
@@ -147,13 +168,15 @@ namespace scheduler
             int counter = 1;
             foreach(string storage in this._storages){
                 var storageInfo = this.GetAddressInfo(storage);
-                request.Meta.Storages.Add(
+                if(storageInfo != null){
+                    request.Meta.Storages.Add(
                     new DIDAWorker.Proto.DIDAStorageNodeDetails{
                         Host = storageInfo.Item1,
                         Port = Int32.Parse(storageInfo.Item2),
                         Id = counter.ToString() //TODO CHANGE THIS: MIXUP WITH SERVER 
-                    }
-                );
+                    });
+                }
+
             }
 
         }
