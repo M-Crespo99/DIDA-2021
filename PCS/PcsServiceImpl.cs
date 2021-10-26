@@ -40,11 +40,11 @@ namespace PCS
                 var argument = "";
                 if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
                 {
-                    argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1}", dir, newPort);    
+                    argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1} {2}", dir, newPort, request.Id);    
                 }
                 else
                 {
-                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\worker.dll {1}", dir, newPort);
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\worker.dll {1} {2}", dir, newPort, request.Id);
                 }
                 
                 
