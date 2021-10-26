@@ -50,6 +50,8 @@ message DIDAWorkerListDetails {
 message DIDAMetaRecord {
   int32 id = 1;
   repeated DIDAStorageNodeDetails storages = 2;
+  string schedulerHost = 3;
+  int32 schedulerPort = 4;
 }
 
 message DIDAAssignment {

@@ -16,6 +16,8 @@ namespace worker
 {
     public class WorkerServiceImpl: DIDAWorkerService.DIDAWorkerServiceBase
     {
+        private String workerId;
+        
         List<DIDAStorageNode> storageReplicas = new List<DIDAStorageNode>();
 
         delLocateStorageId locationFunction;
@@ -29,8 +31,9 @@ namespace worker
         private String debugHost = "";
         private int debugPort = 0;
 
-        public WorkerServiceImpl(){
+        public WorkerServiceImpl(String id){
             this.locationFunction = new delLocateStorageId(this.locateStorage);
+            this.workerId = id;
         }
 
         public async override Task<DIDAReply> workOnOperator(DIDAWorker.Proto.DIDARequest request, ServerCallContext context)
@@ -80,6 +83,7 @@ namespace worker
                             }
 
                             StoreOperatorInformationInDict(className, stopwatch);
+                            SendOperatorInfoToScheduler(request.Meta.SchedulerHost, request.Meta.SchedulerPort, className, stopwatch);
 
                             if (isDebug)
                             {
@@ -109,6 +113,18 @@ namespace worker
             return await Task.FromResult(new DIDAReply());
         }
 
+        private void SendOperatorInfoToScheduler(String schedulerHost, int schedulerPort, String className, Stopwatch stopwatch)
+        {
+            GrpcChannel channel = GrpcChannel.ForAddress(String.Format("http://{0}:{1}", schedulerHost, schedulerPort));
+            var client = new DIDASchedulerService.DIDASchedulerServiceClient(channel);
+            client.operatorCompleteAsync(new CompleteOperatorRequest
+            {
+                OperationTime = stopwatch.Elapsed.Milliseconds,
+                OperatorName = className,
+                WorkerId = this.workerId
+            });
+        }
+        
         private void StoreOperatorInformationInDict(string className, Stopwatch stopwatch)
         {
             if (operatorDictionary.ContainsKey(className))
@@ -146,7 +162,7 @@ namespace worker
             client.receiveDebugInfoAsync(new DebugInfoRequest {Info = resultString});
         }
 
-        public override async Task<LivenessCheckReply> livenessCheck(LivenessCheckRequest request, ServerCallContext context)
+        public async Task<LivenessCheckReply> livenessCheck(LivenessCheckRequest request, ServerCallContext context)
         {
             Console.WriteLine("## Liveness check for worker##");
             Console.WriteLine(request.ToString());
