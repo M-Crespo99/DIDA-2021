@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Reflection;
@@ -96,9 +97,33 @@ namespace PuppetMaster
                 case "crash":
                     ShowSubMenuRCrashStorage(operation);
                     break;
+                case "wait":
+                    Wait(operation);
+                    break;
                 // Return text for an incorrect option entry.
                 default:
                     break;
+            }
+        }
+
+        private static void Wait(string operation)
+        {
+            var result = operation.Split(" ");
+            if (result.Length > 1)
+            {
+                try
+                {
+                    Console.WriteLine("Waiting {0} milliseconds", int.Parse(result[1]));
+                    Thread.Sleep(int.Parse(result[1]));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Argument of wait must be a number");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Command value is invalid, must be a valid number for wait");
             }
         }
 
