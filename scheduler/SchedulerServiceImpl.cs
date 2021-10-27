@@ -81,7 +81,7 @@ namespace scheduler
 
         public override Task<CompleteOperatorReply> operatorComplete(CompleteOperatorRequest request, ServerCallContext context)
         {
-
+            //TODO Add storing of received information and use that information for better scheduling
             return Task.FromResult(new CompleteOperatorReply { });
         }
 
