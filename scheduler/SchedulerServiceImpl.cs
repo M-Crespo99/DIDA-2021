@@ -10,11 +10,20 @@ namespace scheduler
     public class SchedulerServiceImpl : DIDASchedulerServiceBase
     {
 
+        private String host;
+        private int port;
+
         private List<string> _storages = new List<string>();
         private List<string> _workers = new List<string>();
         private int _currentWorkerOrder = 0;
 
         private int _idCounter = 0;
+
+        public SchedulerServiceImpl(String host, int port)
+        {
+            this.host = host;
+            this.port = port;
+        }
         public override async Task<DIDARunApplicationReply> runApplication(DIDARunApplicationRequest request, ServerCallContext context)
         {
             Console.WriteLine("ENTERED SCHEDULER");
@@ -33,6 +42,8 @@ namespace scheduler
             lock(this){
                 newRequest.Meta = new DIDAWorker.Proto.DIDAMetaRecord{
                     Id = this._idCounter,
+                    SchedulerHost = this.host,
+                    SchedulerPort = this.port
                 };
                 this._idCounter++;
             }
