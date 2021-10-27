@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using DIDAStorage.Proto;
 using Grpc.Core;
+
 // using DIDAWorker.Proto;
 
 namespace PCS
@@ -42,8 +43,23 @@ namespace PCS
             ShutdownChannel();
             return response;
         }
-        
-        
+
+        public void CrashStorage()
+        {
+            var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+            var request = new  DIDACrashServerRequest();
+            
+            try
+            {
+                client.crashServerAsync(request).GetAwaiter().GetResult();
+            }
+            catch (Exception e) { }
+            finally
+            {
+                ShutdownChannel();
+            }
+        }
+
         private void ShutdownChannel()
         {
             _channel.ShutdownAsync().Wait();

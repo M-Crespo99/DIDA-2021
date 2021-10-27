@@ -92,6 +92,14 @@ namespace PuppetMaster
             return response;
         }
         
+        public CrashReply CrashStorage(string storageId)
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            client.crashAsync(new CrashRequest {Id = storageId});
+            ShutdownChannel();
+            return new CrashReply{Ok = true};
+        }
+        
         private void ShutdownChannel()
         {
             _channel.ShutdownAsync().Wait();

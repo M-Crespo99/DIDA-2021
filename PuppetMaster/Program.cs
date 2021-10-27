@@ -92,7 +92,9 @@ namespace PuppetMaster
                     ShowSubMenuRunApplication(operation);
                     break;
                 case "populate":
-                    
+                    break;
+                case "crash":
+                    ShowSubMenuRCrashStorage(operation);
                     break;
                 // Return text for an incorrect option entry.
                 default:
@@ -113,7 +115,6 @@ namespace PuppetMaster
                 if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
-                    Console.WriteLine(parameters);
                     var request = new PmCreateWorkerRequest {Id = parameters[1], Url = parameters[2], GossipDelay = int.Parse(parameters[3])};
                     var result = await Task.FromResult(commandLine.createWorker(request));
                     Console.WriteLine(result.Result);
@@ -133,7 +134,6 @@ namespace PuppetMaster
                 if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
-                    Console.WriteLine(parameters);
                     var request = new PmCreateStorageRequest {Id = parameters[1], Url = parameters[2], GossipDelay = int.Parse(parameters[3])};
                     var result = await Task.FromResult(commandLine.createStorage(request));
                     Console.WriteLine(result.Result);
@@ -154,7 +154,8 @@ namespace PuppetMaster
                 {
                     var commandLine = new CommandLine();
                     var request = new PmCreateSchedulerRequest {Id = parameters[1], Url = parameters[2]};
-                    var result = await Task.FromResult(commandLine.createScheduler(request));
+                    var result = await Task
+                        .FromResult(commandLine.createScheduler(request)).GetAwaiter().GetResult();
                     Console.WriteLine(result.Result);
                 }
             }
@@ -162,20 +163,31 @@ namespace PuppetMaster
         
         private static async void ShowSubMenuRunApplication(string command)
         {
-            // Console.WriteLine("Run application as follows: input, file_path and press enter:");
-            // Console.WriteLine("\texample: 1234 /usr/share");
-            // Console.WriteLine("\t---------------------------------------------------------");
-            // var parameter = Console.ReadLine();
             if (command != null)
             {
                 var parameters = command.Split(" ");
                 if (parameters.Length == 3)
                 {
                     var commandLine = new CommandLine();
-                    Console.WriteLine(parameters);
-                    
-                    var result = await Task.FromResult(commandLine.runApplication(parameters[1], parameters[2]));
-                    Console.WriteLine(result.Result);
+
+                    var result = await Task
+                        .FromResult(commandLine.runApplication(parameters[1], parameters[2])).GetAwaiter().GetResult();
+                    Console.WriteLine(result.Ok);
+                }
+            }
+        }
+        
+        private static async void ShowSubMenuRCrashStorage(string command)
+        {
+            if (command != null)
+            {
+                var parameters = command.Split(" ");
+                if (parameters.Length == 2)
+                {
+                    var commandLine = new CommandLine();
+
+                    var result = await Task.FromResult(commandLine.CrashStorage(parameters[1])).GetAwaiter().GetResult();
+                    Console.WriteLine(result.Ok);
                 }
             }
         }

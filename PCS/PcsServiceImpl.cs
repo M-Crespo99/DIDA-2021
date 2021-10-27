@@ -197,5 +197,40 @@ namespace PCS
         {
             return await Task.FromResult(new PcsGetSchedulerReply {Scheduler = _schedulers[0]});
         }
+
+        public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
+        {
+            return await base.listServer(request, context);
+        }
+
+        public override async Task<CrashReply> crash(CrashRequest request, ServerCallContext context)
+        {
+            var storageUrl = _idHostStorage[request.Id];
+            if (storageUrl == null) return await Task.FromResult(new CrashReply {Ok = false});
+            
+            var client = new Client(storageUrl);
+            client.CrashStorage();
+
+            if (_idHostStorage.TryRemove(request.Id, out storageUrl))
+            {
+                Console.WriteLine("storage {0} crashed", storageUrl);    
+            }
+            return await Task.FromResult(new CrashReply {Ok = true});
+        }
+
+        public override async Task<DebugReply> debug(DebugRequest request, ServerCallContext context)
+        {
+            return await base.debug(request, context);
+        }
+
+        public override async Task<StatusReply> status(StatusRequest request, ServerCallContext context)
+        {
+            return await base.status(request, context);
+        }
+
+        public override async Task<PopulateReply> populate(PopulateRequest request, ServerCallContext context)
+        {
+            return await base.populate(request, context);
+        }
     }
 }

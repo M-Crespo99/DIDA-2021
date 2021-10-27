@@ -90,5 +90,13 @@ namespace PuppetMaster
             var response = schedulerClient.SchedulerRunApplication(request);
             return await Task.FromResult(new PmRunApplicationReply {Ok = response.Ok});
         }
+        
+        public async Task<CrashReply> CrashStorage(string storageId)
+        {
+            var pcsClient = new PcsClient(_pcsUrl);
+            var response = pcsClient.CrashStorage(storageId);
+            
+            return await Task.FromResult(new CrashReply {Ok = response.Ok});
+        }
     }
 }
