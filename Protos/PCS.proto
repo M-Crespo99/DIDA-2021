@@ -11,7 +11,7 @@ service PCSService {
   rpc getScheduler(PcsGetSchedulerRequest) returns (PcsGetSchedulerReply);
   rpc crash(CrashRequest) returns (CrashReply);
   rpc debug(DebugRequest) returns (DebugReply);
-  rpc status(StatusRequest) returns (StatusReply);
+  rpc status(PcsStatusRequest) returns (PcsStatusReply);
   rpc populate(PopulateRequest) returns (PopulateReply);
 }
 
@@ -24,13 +24,9 @@ message PopulateReply{
   bool ok = 1;
 }
 
-message StatusRequest{
-  string id = 1;
-}
+message PcsStatusRequest{}
 
-message StatusReply{
-  bool ok = 1;
-}
+message PcsStatusReply{}
 
 message DebugRequest{
   string id = 1;

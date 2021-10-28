@@ -100,12 +100,24 @@ namespace PuppetMaster
                 case "wait":
                     Wait(operation);
                     break;
+                case "status":
+                    Status(operation);
+                    break;
                 // Return text for an incorrect option entry.
                 default:
                     break;
             }
         }
 
+        private static void Status(string operation)
+        {
+            var result = operation.Split(" ");
+            if (result.Length >= 1 && result[0].Trim().Equals("status"))
+            {
+                var commandLine = new CommandLine();
+                commandLine.PrintStatus();
+            }
+        }
         private static void Wait(string operation)
         {
             var result = operation.Split(" ");

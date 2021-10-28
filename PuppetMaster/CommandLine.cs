@@ -43,24 +43,6 @@ namespace PuppetMaster
             return await Task.FromResult(new PmCreateSchedulerReply {Ok = response.Ok, Result = response.Result});
         }
 
-        // public async Task<PmCheckStatusReply> checkStatus(PmCheckStatusRequest request, ServerCallContext context)
-        // {
-        //     Console.WriteLine("## Testing parameters for Check Status ##");
-        //     Console.WriteLine(request.ToString());
-        //     Console.WriteLine("## ------ ##");
-        //     
-        //     return await base.checkStatus(request, context);
-        // }
-
-        // public async Task<PmListGlobalReply> listGlobal(PmListGlobalRequest request, ServerCallContext context)
-        // {
-        //     Console.WriteLine("## Testing parameters for List Global ##");
-        //     Console.WriteLine(request.ToString());
-        //     Console.WriteLine("## ------ ##");
-        //         
-        //     return await base.listGlobal(request, context);
-        // }
-
         public async Task<PmListServerReply> listServer(PmListServerRequest request)
         {
             //TODO should look into the PCS available and not hard coded below
@@ -97,6 +79,12 @@ namespace PuppetMaster
             var response = pcsClient.CrashStorage(storageId);
             
             return await Task.FromResult(new CrashReply {Ok = response.Ok});
+        }
+
+        public void PrintStatus()
+        {
+            var pcsClient = new PcsClient(_pcsUrl);
+            pcsClient.PrintStatus();
         }
     }
 }

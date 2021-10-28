@@ -21,9 +21,8 @@ message ToggleDebugReply {
 }
 
 
-message StatusRequest {
+message StatusRequest {}
 
-}
 message StatusReply {
 	bool ok = 1;
 }

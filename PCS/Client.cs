@@ -1,7 +1,9 @@
 using System;
 using System.Threading.Tasks;
 using DIDAStorage.Proto;
+using DIDAWorker.Proto;
 using Grpc.Core;
+using StatusRequest = DIDAStorage.Proto.StatusRequest;
 
 // using DIDAWorker.Proto;
 
@@ -58,6 +60,25 @@ namespace PCS
             {
                 ShutdownChannel();
             }
+        }
+        
+        public void PrintStorageStatus()
+        {
+            var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+            client.statusAsync(new StatusRequest()).GetAwaiter().GetResult();
+            ShutdownChannel();
+        }
+        
+        public void PrintWorkerStatus()
+        {
+            var client = new DIDAWorkerService.DIDAWorkerServiceClient(GetConnection());
+            client.statusAsync(new DIDAWorker.Proto.StatusRequest()).GetAwaiter().GetResult();
+            ShutdownChannel();
+        }
+
+        public void PrintSchedulerStatus()
+        {
+            
         }
 
         private void ShutdownChannel()

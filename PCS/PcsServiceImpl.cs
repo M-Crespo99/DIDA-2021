@@ -1,9 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using static PCSService;
@@ -225,9 +222,28 @@ namespace PCS
             return await base.debug(request, context);
         }
 
-        public override async Task<StatusReply> status(StatusRequest request, ServerCallContext context)
+        public override async Task<PcsStatusReply> status(PcsStatusRequest request, ServerCallContext context)
         {
-            return await base.status(request, context);
+            
+            //TODO do the liveness first (if its up or not) for all below
+            foreach (var keyValuePair in _idHostStorage)
+            {
+                var client = new Client(keyValuePair.Value);
+                client.PrintStorageStatus();
+            }
+
+            foreach (var keyValuePair in _idWorker)
+            {
+                var client = new Client(keyValuePair.Value);
+                client.PrintWorkerStatus();
+            }
+            
+            // foreach (var scheduler in _schedulers)
+            // {
+            //     var client = new Client(scheduler);
+            //     client.PrintSchedulerStatus();
+            // }
+            return await Task.FromResult(new PcsStatusReply {});
         }
 
         public override async Task<PopulateReply> populate(PopulateRequest request, ServerCallContext context)

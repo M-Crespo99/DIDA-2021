@@ -95,9 +95,16 @@ namespace PuppetMaster
         public CrashReply CrashStorage(string storageId)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
-            client.crashAsync(new CrashRequest {Id = storageId});
+            client.crashAsync(new CrashRequest {Id = storageId}).GetAwaiter().GetResult();
             ShutdownChannel();
             return new CrashReply{Ok = true};
+        }
+        
+        public void PrintStatus()
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            client.statusAsync(new PcsStatusRequest()).GetAwaiter().GetResult();
+            ShutdownChannel();
         }
         
         private void ShutdownChannel()
