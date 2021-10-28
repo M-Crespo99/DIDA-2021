@@ -76,7 +76,7 @@ namespace PuppetMaster
             var pcsClient = new PcsClient(_pcsUrl);
             var response = pcsClient.ListServer(request.Id);
 
-            return await Task.FromResult(new PmListServerReply {Objects = {response.Objects}});
+            return await Task.FromResult(new PmListServerReply ());
         }
 
         public override async Task<PmRunApplicationReply> runApplication(PmRunApplicationRequest request, ServerCallContext context)

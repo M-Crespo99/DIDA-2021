@@ -14,11 +14,7 @@ namespace PuppetMaster
         private readonly ConcurrentDictionary<int, string> _storage = new (ConcurrencyLevel, 100);
         private readonly ConcurrentDictionary<int, string> _scheduler = new (ConcurrencyLevel, 100);
         private readonly ConcurrentDictionary<int, string> _pcs = new (ConcurrencyLevel, 100);
-
-        private void getWorkersByPcsUrl(string url)
-        {
-            
-        }
+        
         public async Task<PmCreateWorkerReply> createWorker(PmCreateWorkerRequest request)
         {
             var pcsClient = new PcsClient(_pcsUrl);
@@ -43,13 +39,12 @@ namespace PuppetMaster
             return await Task.FromResult(new PmCreateSchedulerReply {Ok = response.Ok, Result = response.Result});
         }
 
-        public async Task<PmListServerReply> listServer(PmListServerRequest request)
+        public async Task<PmListServerReply> ListServer(PmListServerRequest request)
         {
             //TODO should look into the PCS available and not hard coded below
             var pcsClient = new PcsClient(_pcsUrl);
-            var response = pcsClient.ListServer(request.Id);
-
-            return await Task.FromResult(new PmListServerReply {Objects = {response.Objects}});
+            pcsClient.ListServer(request.Id);
+            return await Task.FromResult(new PmListServerReply());
         }
 
         public async Task<PmRunApplicationReply> runApplication(string input, string filePath)

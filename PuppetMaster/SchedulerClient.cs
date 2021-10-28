@@ -20,7 +20,7 @@ namespace PuppetMaster
         {
             _channel.ConnectAsync().ContinueWith(task =>
             {
-                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("Client connected");
+                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
             });
 
             return _channel;

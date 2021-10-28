@@ -24,7 +24,7 @@ namespace PCS
         {
             _channel.ConnectAsync().ContinueWith(task =>
             {
-                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("Client connected");
+                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
             });
 
             return _channel;
@@ -40,7 +40,17 @@ namespace PCS
         public DIDAListServerReply ListServerStorage()
         {
             var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
-            var response = client.listServer(new DIDAListServerRequest());
+            var response = client.listServerAsync(new DIDAListServerRequest()).GetAwaiter().GetResult();
+                
+            ShutdownChannel();
+            return response;
+        }
+        
+        public ListServerReply ListServerWorker()
+        {
+            
+            var client = new DIDAWorkerService.DIDAWorkerServiceClient(GetConnection());
+            var response = client.listServerAsync(new ListServerRequest()).GetAwaiter().GetResult();
                 
             ShutdownChannel();
             return response;

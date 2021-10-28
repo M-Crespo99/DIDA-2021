@@ -10,7 +10,7 @@ namespace PuppetMaster
 {
     class Program
     {
-        private const int Port = 2000;
+        private const int Port = 10001;
         static void Main(string[] args)
         {
             if (args.Length != 0 && args[0] == "GRPC-SERVER")
@@ -103,16 +103,29 @@ namespace PuppetMaster
                 case "status":
                     Status(operation);
                     break;
+                case "listServer":
+                    ListServer(operation);
+                    break;
                 // Return text for an incorrect option entry.
                 default:
                     break;
             }
         }
-
+        
+        private static void ListServer(string operation)
+        {
+            Console.WriteLine(operation);
+            var result = operation.Split(" ");
+            if (result.Length == 2)
+            {
+                var commandLine = new CommandLine();
+                commandLine.ListServer(new PmListServerRequest{Id = result[1]}).GetAwaiter().GetResult();
+            }
+        }
         private static void Status(string operation)
         {
             var result = operation.Split(" ");
-            if (result.Length >= 1 && result[0].Trim().Equals("status"))
+            if (result.Length == 1 && result[0].Trim().Equals("status"))
             {
                 var commandLine = new CommandLine();
                 commandLine.PrintStatus();

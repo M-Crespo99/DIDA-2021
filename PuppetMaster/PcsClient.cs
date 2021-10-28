@@ -19,7 +19,7 @@ namespace PuppetMaster
         {
             _channel.ConnectAsync().ContinueWith(task =>
             {
-                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("Client connected");
+                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
             });
 
             return _channel;
@@ -55,12 +55,11 @@ namespace PuppetMaster
             return response;
         }
         
-        public PcsListServerReply ListServer(int id)
+        public PcsListServerReply ListServer(string id)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
             var request = new PcsListServerRequest {Id = id};
             var response = client.listServerAsync(request).GetAwaiter().GetResult();
-            Console.WriteLine(response.Objects);
             ShutdownChannel();
             return response;
         }

@@ -81,12 +81,10 @@ message PCSRunSchedulerReply {
 }
 
 message PcsListServerRequest {
-  int32 id = 1;
+  string id = 1;
 }
 
-message PcsListServerReply {
-  repeated string objects = 1;
-}
+message PcsListServerReply {}
 
 message PcsListGlobalRequest { }
 
