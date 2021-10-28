@@ -1,5 +1,6 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
+using System.Threading.Tasks;
 using System;
 
 namespace StorageFrontend
@@ -40,6 +41,10 @@ namespace StorageFrontend
             this._client = new DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceClient(this._channel);
         }
 
+        public async Task<DIDAStorage.Proto.StatusReply> printStatus()
+        {
+            return await this._client.statusAsync(new DIDAStorage.Proto.StatusRequest());
+        }
 
         public DIDAStorage.Proto.DIDAVersion Write(string id, string value)
         {
@@ -76,6 +81,11 @@ namespace StorageFrontend
             }
         }
 
+
+        public async Task<DIDAStorage.Proto.ToggleDebugReply> toogleDebug()
+        {
+            return await this._client.toggleDebugAsync(new DIDAStorage.Proto.ToggleDebugRequest());
+        }
         public DIDAStorage.Proto.DIDARecordReply Read(string id, int versionNumber, int replicaId)
         {
             var version = new DIDAStorage.Proto.DIDAVersion{

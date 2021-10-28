@@ -44,6 +44,14 @@ namespace StorageTester
                     var reply = frontend.listServer();
                     Console.WriteLine(reply.ToString());
                 }
+                else if(parts[0] == "status" && parts.Length == 1){
+                    var reply = frontend.printStatus();
+                    Console.WriteLine(reply.ToString());
+                }
+                else if(parts[0] == "debug" && parts.Length == 1){
+                    var reply = frontend.toogleDebug();
+                    Console.WriteLine(reply.Result.DebugStatus);
+                }
                 else if(parts[0] == "populate" && parts.Length == 2){
                     var file = parts[1];
 

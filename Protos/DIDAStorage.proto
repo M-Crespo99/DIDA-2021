@@ -10,7 +10,16 @@ service DIDAStorageService {
   rpc listServer(DIDAListServerRequest) returns (DIDAListServerReply);
   rpc crashServer(DIDACrashServerRequest) returns (DIDACrashServerReply);
   rpc status(StatusRequest) returns (StatusReply);
+  rpc toggleDebug(ToggleDebugRequest) returns (ToggleDebugReply);
 }
+
+message ToggleDebugRequest {
+
+}
+message ToggleDebugReply {
+	bool debugStatus = 1;
+}
+
 
 message StatusRequest {
 
