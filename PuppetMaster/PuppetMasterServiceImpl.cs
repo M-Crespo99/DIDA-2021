@@ -85,5 +85,11 @@ namespace PuppetMaster
             var response = schedulerClient.SchedulerRunApplication(request);
             return await Task.FromResult(new PmRunApplicationReply {Ok = response.Ok});
         }
+
+        public override Task<DebugInfoReply> receiveDebugInfo(DebugInfoRequest request, ServerCallContext context)
+        {
+            Console.WriteLine(request.Info);
+            return Task.FromResult(new DebugInfoReply());
+        }
     }
 }

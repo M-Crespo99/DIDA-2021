@@ -33,4 +33,9 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Protobuf Include="../Protos/puppetMaster.proto" GrpcServices="Client" Link="Protos/puppetMaster.proto" />
+    <Protobuf Include="../Protos/Scheduler.proto" GrpcServices="Client" Link="Protos/Scheduler.proto" />
+  </ItemGroup>
+
 </Project>

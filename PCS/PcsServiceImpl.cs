@@ -40,11 +40,11 @@ namespace PCS
                 var argument = "";
                 if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
                 {
-                    argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1}", dir, newPort);    
+                    argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1} {2}", dir, newPort, request.Id);    
                 }
                 else
                 {
-                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\worker.dll {1}", dir, newPort);
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\worker.dll {1} {2}", dir, newPort, request.Id);
                 }
                 
                 
@@ -126,19 +126,21 @@ namespace PCS
                     .Replace("PuppetMaster", "scheduler")
                     .Replace("PCS", "scheduler");
                
-                var newPort = request.Url
+                var newUrlAndPort = request.Url
                     .Replace("http://", "")
                     .Replace("https://", "")
-                    .Split(":")[1];
+                    .Split(":");
+                var newHost = newUrlAndPort[0];
+                var newPort = newUrlAndPort[1];
                 
                 var argument = "";
                 if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
                 {
-                    argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, newPort);    
+                    argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, newHost, newPort);    
                 }
                 else
                 {
-                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\scheduler.dll {1}", dir, newPort);
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\scheduler.dll {1}", dir, newHost, newPort);
                 }
                 
                 executeRunCommand("dotnet", argument);

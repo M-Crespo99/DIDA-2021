@@ -1,6 +1,8 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
 using System;
+using System.Threading.Tasks;
+using DIDAWorker.Proto;
 
 namespace WorkerFrontend
 {
@@ -42,6 +44,21 @@ namespace WorkerFrontend
 
         public void workOnOperator(DIDAWorker.Proto.DIDARequest request){
             this._client.workOnOperatorAsync(request); //Do we care about this return value?
+        }
+
+        public async Task<DebugReply> Debug(DebugRequest request)
+        {
+            return this._client.debug(request);
+        }
+
+        public async Task<ListServerReply> ListServer()
+        {
+            return this._client.listServer(new ListServerRequest());
+        }
+
+        public async Task<StatusReply> Status()
+        {
+            return this._client.status(new StatusRequest());
         }
 
         public string getLastErrorMessage(){

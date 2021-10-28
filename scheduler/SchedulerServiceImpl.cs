@@ -11,12 +11,21 @@ namespace scheduler
     public class SchedulerServiceImpl : DIDASchedulerServiceBase
     {
 
+        private String _host;
+        private int _port;
+
         private List<string> _storages = new List<string>();
         private List<string> _workers = new List<string>();
         private int _currentWorkerOrder = 0;
 
         private bool _verbose = true;
         private int _idCounter = 0;
+
+        public SchedulerServiceImpl(String host, int port)
+        {
+            this._host = host;
+            this._port = port;
+        }
         public override async Task<DIDARunApplicationReply> runApplication(DIDARunApplicationRequest request, ServerCallContext context)
         {
             this.ParseServers(this._workers, request.Workers.ToList());
@@ -34,6 +43,8 @@ namespace scheduler
             lock(this){
                 newRequest.Meta = new DIDAWorker.Proto.DIDAMetaRecord{
                     Id = this._idCounter,
+                    SchedulerHost = this._host,
+                    SchedulerPort = this._port
                 };
                 this._idCounter++;
             }
@@ -69,6 +80,11 @@ namespace scheduler
             return await Task.FromResult(new LivenessCheckReply{Ok = true});
         }
 
+        public override Task<CompleteOperatorReply> operatorComplete(CompleteOperatorRequest request, ServerCallContext context)
+        {
+            //TODO Add storing of received information and use that information for better scheduling
+            return Task.FromResult(new CompleteOperatorReply { });
+        }
 
         private List<Tuple<string, int>> ReadApplicationFile(string filePath){
             string[] lines;
