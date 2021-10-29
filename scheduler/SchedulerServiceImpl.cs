@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Grpc.Core;
 using System.Collections.Generic;
@@ -15,8 +16,9 @@ namespace scheduler
         private int _port;
 
         private List<string> _storages = new List<string>();
-        private List<string> _workers = new List<string>();
+        private ConcurrentDictionary<string, string> _workers = new ConcurrentDictionary<string, string>();
         private int _currentWorkerOrder = 0;
+        private ConcurrentDictionary<string, int> _operatorsPerWorkerDict = new ConcurrentDictionary<string, int>();
 
         private bool _verbose = true;
         private int _idCounter = 0;
@@ -28,7 +30,7 @@ namespace scheduler
         }
         public override async Task<DIDARunApplicationReply> runApplication(DIDARunApplicationRequest request, ServerCallContext context)
         {
-            this.ParseServers(this._workers, request.Workers.ToList());
+            this.parseWorkers(this._workers, request.Workers.ToList());
             this.ParseServers(this._storages, request.Storages.ToList());
             //Get the operators
             var operators = this.ReadApplicationFile(request.FilePath);
@@ -83,6 +85,11 @@ namespace scheduler
         public override Task<CompleteOperatorReply> operatorComplete(CompleteOperatorRequest request, ServerCallContext context)
         {
             //TODO Add storing of received information and use that information for better scheduling
+            lock (this)
+            {
+                var currentValue = _operatorsPerWorkerDict[request.WorkerId];
+                _operatorsPerWorkerDict.TryUpdate(request.WorkerId, currentValue - 1, currentValue);
+            }
             return Task.FromResult(new CompleteOperatorReply { });
         }
 
@@ -128,6 +135,18 @@ namespace scheduler
             return listToReturn;
         }
 
+        private void parseWorkers(ConcurrentDictionary<string, string> concurrentDictionary, List<string> workerInfo)
+        {
+            foreach (var worker in workerInfo)
+            {
+                var info = worker.Split("+");
+                if (!concurrentDictionary.ContainsKey(info[0]))
+                {
+                    concurrentDictionary.TryAdd(info[0], info[1]);
+                }
+            }
+        }
+
         private void ParseServers(List<string> listToAdd ,List<string> nodes){
             foreach(string node in nodes){
                 if(!listToAdd.Contains(node)){
@@ -151,7 +170,32 @@ namespace scheduler
             return null;
         }
 
-        private void ScheduleOperators(DIDAWorker.Proto.DIDARequest request, List<Tuple<string, int>> operators){
+        private void ScheduleOperators(DIDAWorker.Proto.DIDARequest request, List<Tuple<string, int>> operators)
+        {
+            foreach (var op in operators)
+            {
+                KeyValuePair<string, int> laziestWorker;
+                lock (this)
+                {
+                    laziestWorker = _operatorsPerWorkerDict.OrderBy(k => k.Value).First();
+                    _operatorsPerWorkerDict.TryUpdate(laziestWorker.Key, laziestWorker.Value + 1, laziestWorker.Value);
+                }
+
+                var hostInfo = GetAddressInfo(_workers[laziestWorker.Key]);
+                var assignment = new DIDAWorker.Proto.DIDAAssignment{
+                    Operator = new DIDAWorker.Proto.DIDAOperatorID{
+                        Classname = op.Item1,
+                        Order = op.Item2,
+                    },
+                    Host = hostInfo.Item1,
+                    Port = Int32.Parse(hostInfo.Item2),
+                    Output = ""
+                };
+                request.Chain.Add(assignment);
+            }
+        }
+
+        /*private void ScheduleOperators(DIDAWorker.Proto.DIDARequest request, List<Tuple<string, int>> operators){
             //Round robin implementation of load distribution
 
             if(this._workers.Count == 0){
@@ -178,7 +222,7 @@ namespace scheduler
                     this._currentWorkerOrder = (this._currentWorkerOrder + 1) % this._workers.Count;
                 }
             }
-        }
+        } */
 
         private void AssignStorageDetails(DIDAWorker.Proto.DIDARequest request){
             int counter = 1;

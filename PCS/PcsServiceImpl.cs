@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
 using static PCSService;
@@ -189,7 +190,8 @@ namespace PCS
 
         public override async Task<PcsGetWorkersReply> getWorkers(PcsGetWorkersRequest request, ServerCallContext context)
         {
-            return await Task.FromResult(new PcsGetWorkersReply {Workers = { _idWorker.Values }});
+            var workers = _idWorker.Select(pair => pair.Key + "+" + pair.Value).ToArray();
+            return await Task.FromResult(new PcsGetWorkersReply {Workers = { workers }});
         }
 
         public override async Task<PcsGetSchedulerReply> getScheduler(PcsGetSchedulerRequest request, ServerCallContext context)
