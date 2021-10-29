@@ -193,12 +193,33 @@ namespace DIDAStorage
         }
         public DIDAStorage.Proto.DIDAListServerReply getProtoRecords()
         {
+            
+            Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
+            Console.WriteLine("Storage Node {0}:", this._replicaId);
 
             var reply = new DIDAStorage.Proto.DIDAListServerReply();
+
+            if(this._values.Count == 0){
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("No Records stored in this node.");
+                Console.ResetColor();
+
+            }
+
             foreach(KeyValuePair<string, List<DIDAStorage.DIDAValue>> currentRecords in this._values){
+                Console.WriteLine("Record Key: {0}.", currentRecords.Key);
                 var currentCompleteRecord = new DIDAStorage.Proto.DIDACompleteRecord();
                 currentCompleteRecord.Id = currentRecords.Key;
                 foreach(DIDAStorage.DIDAValue currentVersion in currentRecords.Value){
+                    if(currentVersion .Equals(currentRecords.Value.Last())){
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("--> Most Recent Value:");
+                    }
+
+                    Console.WriteLine("\tValue: {0}.", currentVersion.value);
+                    Console.WriteLine("\tVersion Number: {0}.", currentVersion.version.versionNumber);
+                    Console.WriteLine("\tReplica ID: {0}.", currentVersion.version.replicaId);
+                    Console.ResetColor();
                     currentCompleteRecord.Versions.Add(new DIDAStorage.Proto.DIDARecordReply{
                         Id = currentRecords.Key,
                         Version = new DIDAStorage.Proto.DIDAVersion{
@@ -210,6 +231,7 @@ namespace DIDAStorage
                 }
                 reply.Records.Add(currentCompleteRecord);
             }
+            Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
             return reply;
         }
 
