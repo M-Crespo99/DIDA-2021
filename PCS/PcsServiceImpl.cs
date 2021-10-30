@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
 using static PCSService;
@@ -266,12 +268,27 @@ namespace PCS
             //     var client = new Client(scheduler);
             //     client.PrintSchedulerStatus();
             // }
-            return await Task.FromResult(new PcsStatusReply {});
+            return await Task.FromResult(new PcsStatusReply());
         }
 
         public override async Task<PopulateReply> populate(PopulateRequest request, ServerCallContext context)
         {
-            return await base.populate(request, context);
+            if (!_idHostStorage.IsEmpty)
+            {
+                try
+                {
+                    string[] lines = File.ReadAllLines(String.Format(@"{0}", request.DataFilePath));
+                    var firstStorageUrl = _idHostStorage.Values.First();
+                    var client = new Client(firstStorageUrl);
+                    
+                    if (lines.Length > 0) { client.WriteIntoStorage(lines); }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+            return await Task.FromResult(new PopulateReply());
         }
     }
 }

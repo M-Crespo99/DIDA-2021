@@ -74,21 +74,22 @@ namespace PuppetMaster
             switch (operation.Split(" ")[0])
             {
                 case "worker":
-                    ShowSubMenuWorker(operation);
+                    Worker(operation);
                     break;
                 case "storage":
-                    ShowSubMenuStorage(operation);
+                    Storage(operation);
                     break;
                 case "scheduler":
-                    ShowSubMenuScheduler(operation);
+                    Scheduler(operation);
                     break;
                 case "client":
-                    ShowSubMenuRunApplication(operation);
+                    RunApplication(operation);
                     break;
                 case "populate":
+                    Populate(operation);
                     break;
                 case "crash":
-                    ShowSubMenuRCrashStorage(operation);
+                    CrashStorage(operation);
                     break;
                 case "wait":
                     Wait(operation);
@@ -106,7 +107,17 @@ namespace PuppetMaster
                     break;
             }
         }
-        
+
+        private static void Populate(string operation)
+        {
+            var result = operation.Split(" ");
+            if (result.Length == 2)
+            {
+                var commandLine = new CommandLine();
+                commandLine.Populate(result[1]);
+            }
+        }
+
         private static void ListGlobal()
         {
             var commandLine = new CommandLine();
@@ -151,7 +162,7 @@ namespace PuppetMaster
             }
         }
 
-        private static async void ShowSubMenuWorker(string command)
+        private static async void Worker(string command)
         {
 
             if (command != null)
@@ -167,7 +178,7 @@ namespace PuppetMaster
             }
         }
         
-        private static async void ShowSubMenuStorage(string command)
+        private static async void Storage(string command)
         {
             if (command != null)
             {
@@ -182,12 +193,8 @@ namespace PuppetMaster
             }
         }
         
-        private static async void ShowSubMenuScheduler(string command)
+        private static async void Scheduler(string command)
         {
-            // Console.WriteLine("Create a new Scheduler as follows: server_id url and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000");
-            // Console.WriteLine("\t---------------------------------------------------------");
-            // var parameter = Console.ReadLine();
             if (command != null)
             {
                 var parameters = command.Split(" ");
@@ -202,7 +209,7 @@ namespace PuppetMaster
             }
         }
         
-        private static async void ShowSubMenuRunApplication(string command)
+        private static async void RunApplication(string command)
         {
             if (command != null)
             {
@@ -218,7 +225,7 @@ namespace PuppetMaster
             }
         }
         
-        private static async void ShowSubMenuRCrashStorage(string command)
+        private static async void CrashStorage(string command)
         {
             if (command != null)
             {

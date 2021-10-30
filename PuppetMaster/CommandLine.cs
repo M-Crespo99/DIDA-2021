@@ -88,5 +88,11 @@ namespace PuppetMaster
             var pcsClient = new PcsClient(_pcsUrl);
             pcsClient.PrintStatus();
         }
+
+        public void Populate(string path)
+        {
+            var pcsClient = new PcsClient(_pcsUrl);
+            pcsClient.Populate(path);
+        }
     }
 }

@@ -119,5 +119,12 @@ namespace PuppetMaster
         {
             _channel.ShutdownAsync().Wait();
         }
+
+        public void Populate(string path)
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            client.populateAsync(new PopulateRequest {DataFilePath = path}).GetAwaiter().GetResult();
+            ShutdownChannel();
+        }
     }
 }
