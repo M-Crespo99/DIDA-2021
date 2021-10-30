@@ -200,33 +200,36 @@ namespace PCS
         public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
         {
             var storageUrl = _idHostStorage[request.Id];
-            if (storageUrl == null) return await Task.FromResult(new PcsListServerReply());
-            
-            var client = new Client(storageUrl);
-            var result = client.ListServerStorage();
-            
-            foreach (var didaCompleteRecord in result.Records)
+            if (storageUrl != null)
             {
-                Console.WriteLine(didaCompleteRecord.Id);
-                foreach (var didaRecordReply in didaCompleteRecord.Versions)
-                {
-                    Console.WriteLine(didaRecordReply.Id);   
-                    Console.WriteLine(didaRecordReply.Val);   
-                    Console.WriteLine(didaRecordReply.Version.ReplicaId);   
-                    Console.WriteLine(didaRecordReply.Version.VersionNumber);   
-                }
+                var client = new Client(storageUrl);
+                var result = client.ListServerStorage();
+            
+                // foreach (var didaCompleteRecord in result.Records)
+                // {
+                //     Console.WriteLine(didaCompleteRecord.Id);
+                //     foreach (var didaRecordReply in didaCompleteRecord.Versions)
+                //     {
+                //         Console.WriteLine(didaRecordReply.Id);   
+                //         Console.WriteLine(didaRecordReply.Val);   
+                //         Console.WriteLine(didaRecordReply.Version.ReplicaId);   
+                //         Console.WriteLine(didaRecordReply.Version.VersionNumber);   
+                //     }
+                // }
             }
-            
             var workerUrl = _idWorker[request.Id];
-            if (workerUrl == null) return await Task.FromResult(new PcsListServerReply());
-            
-            var clientWorker = new Client(storageUrl);
-            var resultWorker = clientWorker.ListServerWorker();
-            foreach (var resultWorkerDetail in resultWorker.Details)
+            if (workerUrl != null)
             {
-                Console.WriteLine(resultWorkerDetail.OperatorName);
-                Console.WriteLine(resultWorkerDetail.TotalTime);
-                Console.WriteLine(resultWorkerDetail.Executions);
+                var clientWorker = new Client(workerUrl);
+                var resultWorker = clientWorker.ListServerWorker();
+                foreach (var resultWorkerDetail in resultWorker.Details)
+                {
+                    Console.WriteLine(resultWorkerDetail.OperatorName);
+                    Console.WriteLine(resultWorkerDetail.TotalTime);
+                    Console.WriteLine(resultWorkerDetail.Executions);
+                }
+            
+                return await Task.FromResult(new PcsListServerReply());
             }
             
             return await Task.FromResult(new PcsListServerReply());
