@@ -153,33 +153,23 @@ namespace PCS
             }
         }
 
-        //Lists all objects stored on the server identified by server id
-        // public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
-        // {
-        //     Console.WriteLine("## Listing server with the ID: ##"+request.Id);
-        //     Console.WriteLine(request.ToString());
-        //     Console.WriteLine("## ------ ##");
-        //     List<string> objects = new List<string>();
-        //     
-        //     if (_idHostStorage[request.Id] != null)
-        //     {
-        //         var client = new Client(_idHostStorage[request.Id]);
-        //         var result = client.ListServerStorage();
-        //         foreach (var didaCompleteRecord in result.Records)
-        //         {
-        //             objects.Add(didaCompleteRecord.ToString());
-        //         }
-        //         Console.WriteLine(objects);
-        //         return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
-        //     }
-        //     return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
-        // }
-
         // Lists all objects stored on the system.
         public override async Task<PcsListGlobalReply> listGlobal(PcsListGlobalRequest request, ServerCallContext context)
         {
             Console.WriteLine("## Listing all objects stored on the system ##");
-            return await base.listGlobal(request, context);
+            foreach (var keyValuePair in _idHostStorage)
+            {
+                var client = new Client(keyValuePair.Value);
+                client.ListServerStorage();
+            }
+            
+            foreach (var keyValuePair in _idWorker)
+            {
+                var client = new Client(keyValuePair.Value);
+                client.ListServerWorker();
+            }
+
+            return await Task.FromResult(new PcsListGlobalReply());
         }
 
         public override async Task<PcsGetStoragesReply> getStorages(PcsGetStoragesRequest request, ServerCallContext context)

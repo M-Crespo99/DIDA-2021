@@ -64,6 +64,15 @@ namespace PuppetMaster
             return response;
         }
         
+        public void ListGlobal()
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            var request = new PcsListGlobalRequest();
+            
+            client.listGlobalAsync(request).GetAwaiter().GetResult();
+            ShutdownChannel();
+        }
+        
         public PcsGetWorkersReply getWorkers()
         {
             var client = new PCSService.PCSServiceClient(GetConnection());

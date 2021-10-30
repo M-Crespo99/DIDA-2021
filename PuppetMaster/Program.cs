@@ -48,13 +48,6 @@ namespace PuppetMaster
             {
                 Console.WriteLine("An exception occurred\n - Details: " + e.Message);
             }
-
-            // Console.WriteLine("------------------------\n");
-            //
-            // Console.Write("Press 'n' and Enter to close the app, or press any other key and Enter to continue: ");
-            // if (Console.ReadLine() == "n") exit = true;
-            //
-            // Console.WriteLine("\n");
             Console.Clear();
         }
         return;
@@ -106,15 +99,21 @@ namespace PuppetMaster
                 case "listServer":
                     ListServer(operation);
                     break;
-                // Return text for an incorrect option entry.
+                case "listGlobal":
+                    ListGlobal();
+                    break;
                 default:
                     break;
             }
         }
         
+        private static void ListGlobal()
+        {
+            var commandLine = new CommandLine();
+            commandLine.ListGlobal();
+        }
         private static void ListServer(string operation)
         {
-            Console.WriteLine(operation);
             var result = operation.Split(" ");
             if (result.Length == 2)
             {
@@ -154,11 +153,7 @@ namespace PuppetMaster
 
         private static async void ShowSubMenuWorker(string command)
         {
-            // Console.WriteLine("Create a new Worker as follows: server_id url gossip_delay and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000 200");
-            // Console.WriteLine("\t--------------------------------------------------------------------");
-            // var parameter = Console.ReadLine();
-            
+
             if (command != null)
             {
                 var parameters = command.Split(" ");
@@ -174,10 +169,6 @@ namespace PuppetMaster
         
         private static async void ShowSubMenuStorage(string command)
         {
-            // Console.WriteLine("Create a new Storage as follows: server_id,url,gossip_delay and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000 200");
-            // Console.WriteLine("\t---------------------------------------------------------------------");
-            // var parameter = Console.ReadLine();
             if (command != null)
             {
                 var parameters = command.Split(" ");
