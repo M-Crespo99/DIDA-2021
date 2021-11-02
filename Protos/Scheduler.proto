@@ -6,6 +6,7 @@ service DIDASchedulerService {
   // schedule must assign a worker to each operator in the application script
   rpc assignOperator(DIDAAssignmentRequest) returns (DIDAAssignmentReply);
   rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
+  rpc operatorComplete(CompleteOperatorRequest) returns (CompleteOperatorReply);
 }
 
 message DIDARunApplicationRequest {
@@ -35,3 +36,11 @@ message LivenessCheckRequest {}
 message LivenessCheckReply {
   bool ok = 1;
 }
+
+message CompleteOperatorRequest {
+  string workerId = 1;
+  string operatorName = 2;
+  int32 operationTime = 3;
+}
+
+message CompleteOperatorReply {}

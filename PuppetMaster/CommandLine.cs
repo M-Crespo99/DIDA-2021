@@ -14,11 +14,7 @@ namespace PuppetMaster
         private readonly ConcurrentDictionary<int, string> _storage = new (ConcurrencyLevel, 100);
         private readonly ConcurrentDictionary<int, string> _scheduler = new (ConcurrencyLevel, 100);
         private readonly ConcurrentDictionary<int, string> _pcs = new (ConcurrencyLevel, 100);
-
-        private void getWorkersByPcsUrl(string url)
-        {
-            
-        }
+        
         public async Task<PmCreateWorkerReply> createWorker(PmCreateWorkerRequest request)
         {
             var pcsClient = new PcsClient(_pcsUrl);
@@ -43,31 +39,19 @@ namespace PuppetMaster
             return await Task.FromResult(new PmCreateSchedulerReply {Ok = response.Ok, Result = response.Result});
         }
 
-        // public async Task<PmCheckStatusReply> checkStatus(PmCheckStatusRequest request, ServerCallContext context)
-        // {
-        //     Console.WriteLine("## Testing parameters for Check Status ##");
-        //     Console.WriteLine(request.ToString());
-        //     Console.WriteLine("## ------ ##");
-        //     
-        //     return await base.checkStatus(request, context);
-        // }
-
-        // public async Task<PmListGlobalReply> listGlobal(PmListGlobalRequest request, ServerCallContext context)
-        // {
-        //     Console.WriteLine("## Testing parameters for List Global ##");
-        //     Console.WriteLine(request.ToString());
-        //     Console.WriteLine("## ------ ##");
-        //         
-        //     return await base.listGlobal(request, context);
-        // }
-
-        public async Task<PmListServerReply> listServer(PmListServerRequest request)
+        public async Task<PmListServerReply> ListServer(PmListServerRequest request)
         {
             //TODO should look into the PCS available and not hard coded below
             var pcsClient = new PcsClient(_pcsUrl);
-            var response = pcsClient.ListServer(request.Id);
-
-            return await Task.FromResult(new PmListServerReply {Objects = {response.Objects}});
+            pcsClient.ListServer(request.Id);
+            return await Task.FromResult(new PmListServerReply());
+        }
+        
+        public void ListGlobal()
+        {
+            //TODO should look into the PCS available and not hard coded below
+            var pcsClient = new PcsClient(_pcsUrl);
+            pcsClient.ListGlobal();
         }
 
         public async Task<PmRunApplicationReply> runApplication(string input, string filePath)
@@ -89,6 +73,26 @@ namespace PuppetMaster
             };
             var response = schedulerClient.SchedulerRunApplication(request);
             return await Task.FromResult(new PmRunApplicationReply {Ok = response.Ok});
+        }
+        
+        public async Task<CrashReply> CrashStorage(string storageId)
+        {
+            var pcsClient = new PcsClient(_pcsUrl);
+            var response = pcsClient.CrashStorage(storageId);
+            
+            return await Task.FromResult(new CrashReply {Ok = response.Ok});
+        }
+
+        public void PrintStatus()
+        {
+            var pcsClient = new PcsClient(_pcsUrl);
+            pcsClient.PrintStatus();
+        }
+
+        public void Populate(string path)
+        {
+            var pcsClient = new PcsClient(_pcsUrl);
+            pcsClient.Populate(path);
         }
     }
 }

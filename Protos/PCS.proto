@@ -9,6 +9,39 @@ service PCSService {
   rpc getStorages(PcsGetStoragesRequest) returns (PcsGetStoragesReply);
   rpc getWorkers(PcsGetWorkersRequest) returns (PcsGetWorkersReply);
   rpc getScheduler(PcsGetSchedulerRequest) returns (PcsGetSchedulerReply);
+  rpc crash(CrashRequest) returns (CrashReply);
+  rpc debug(DebugRequest) returns (DebugReply);
+  rpc status(PcsStatusRequest) returns (PcsStatusReply);
+  rpc populate(PopulateRequest) returns (PopulateReply);
+}
+
+
+message PopulateRequest{
+  string dataFilePath = 1;
+}
+
+message PopulateReply{
+  bool ok = 1;
+}
+
+message PcsStatusRequest{}
+
+message PcsStatusReply{}
+
+message DebugRequest{
+  string id = 1;
+}
+
+message DebugReply{
+  bool ok = 1;
+}
+
+message CrashRequest{
+  string id = 1;
+}
+
+message CrashReply{
+  bool ok = 1;
 }
 
 message PCSRunWorkerRequest {
@@ -48,12 +81,10 @@ message PCSRunSchedulerReply {
 }
 
 message PcsListServerRequest {
-  int32 id = 1;
+  string id = 1;
 }
 
-message PcsListServerReply {
-  repeated string objects = 1;
-}
+message PcsListServerReply {}
 
 message PcsListGlobalRequest { }
 

@@ -9,6 +9,7 @@ service PuppetMasterService {
   rpc listServerPcs(PmListServerPcsRequest) returns (PmListServerPcsReply);
   rpc listServer(PmListServerRequest) returns (PmListServerReply);
   rpc runApplication(PmRunApplicationRequest) returns (PmRunApplicationReply);
+  rpc receiveDebugInfo(DebugInfoRequest) returns (DebugInfoReply);
 }
 
 message PmCreateWorkerRequest {
@@ -70,7 +71,7 @@ message PmListGlobalReply {
 }
 
 message PmListServerRequest {
-  int32 id = 1;
+  string id = 1;
 }
 
 message PmListServerReply {
@@ -89,3 +90,9 @@ message PmRunApplicationRequest {
 message PmRunApplicationReply {
   bool ok = 1;
 }
+
+message DebugInfoRequest {
+  string info = 1;
+}
+
+message DebugInfoReply {}

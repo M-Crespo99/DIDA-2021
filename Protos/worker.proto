@@ -5,6 +5,9 @@ option csharp_namespace = "DIDAWorker.Proto";
 service DIDAWorkerService {
   rpc workOnOperator(DIDARequest) returns (DIDAReply);
   rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
+  rpc listServer(ListServerRequest) returns (ListServerReply);
+  rpc debug(DebugRequest) returns (DebugReply);
+  rpc status(StatusRequest) returns (StatusReply);
 }
 
 message DIDARequest {
@@ -17,9 +20,38 @@ message DIDARequest {
 
 message DIDAReply {}
 
+message StatusRequest{}
+
+message StatusReply{
+	bool ok = 1;
+}
+
+message DebugRequest{
+  string host = 1;
+  int32 port = 2;
+}
+
+message DebugReply{
+	bool ok = 1;
+}
+
+message ListServerRequest {}
+
+message ListServerReply{
+  repeated DIDAWorkerListDetails details = 1;
+}
+
+message DIDAWorkerListDetails {
+  string operatorName = 1;
+  int32 executions = 2;
+  int32 totalTime = 3;
+}
+
 message DIDAMetaRecord {
   int32 id = 1;
   repeated DIDAStorageNodeDetails storages = 2;
+  string schedulerHost = 3;
+  int32 schedulerPort = 4;
 }
 
 message DIDAAssignment {

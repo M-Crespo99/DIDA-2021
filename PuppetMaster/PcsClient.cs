@@ -19,7 +19,7 @@ namespace PuppetMaster
         {
             _channel.ConnectAsync().ContinueWith(task =>
             {
-                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("Client connected");
+                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
             });
 
             return _channel;
@@ -55,14 +55,22 @@ namespace PuppetMaster
             return response;
         }
         
-        public PcsListServerReply ListServer(int id)
+        public PcsListServerReply ListServer(string id)
         {
             var client = new PCSService.PCSServiceClient(GetConnection());
             var request = new PcsListServerRequest {Id = id};
             var response = client.listServerAsync(request).GetAwaiter().GetResult();
-            Console.WriteLine(response.Objects);
             ShutdownChannel();
             return response;
+        }
+        
+        public void ListGlobal()
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            var request = new PcsListGlobalRequest();
+            
+            client.listGlobalAsync(request).GetAwaiter().GetResult();
+            ShutdownChannel();
         }
         
         public PcsGetWorkersReply getWorkers()
@@ -92,9 +100,31 @@ namespace PuppetMaster
             return response;
         }
         
+        public CrashReply CrashStorage(string storageId)
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            client.crashAsync(new CrashRequest {Id = storageId}).GetAwaiter().GetResult();
+            ShutdownChannel();
+            return new CrashReply{Ok = true};
+        }
+        
+        public void PrintStatus()
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            client.statusAsync(new PcsStatusRequest()).GetAwaiter().GetResult();
+            ShutdownChannel();
+        }
+        
         private void ShutdownChannel()
         {
             _channel.ShutdownAsync().Wait();
+        }
+
+        public void Populate(string path)
+        {
+            var client = new PCSService.PCSServiceClient(GetConnection());
+            client.populateAsync(new PopulateRequest {DataFilePath = path}).GetAwaiter().GetResult();
+            ShutdownChannel();
         }
     }
 }

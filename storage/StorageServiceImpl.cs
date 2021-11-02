@@ -34,6 +34,15 @@ namespace storage{
             return Task.FromResult(this.storage.getProtoRecords());
         }
 
+        public override Task<DIDAStorage.Proto.ToggleDebugReply> toggleDebug(DIDAStorage.Proto.ToggleDebugRequest request, ServerCallContext context){
+            bool debug = this.storage.toggleDebug();
+            return Task.FromResult(new DIDAStorage.Proto.ToggleDebugReply{ DebugStatus = debug});
+        }
+        public override Task<DIDAStorage.Proto.StatusReply> status(DIDAStorage.Proto.StatusRequest request, ServerCallContext context){
+            this.storage.printStatus();
+            return Task.FromResult(new DIDAStorage.Proto.StatusReply{ Ok = true});
+        }
+
 
         private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
             try{

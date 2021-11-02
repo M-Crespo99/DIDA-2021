@@ -10,15 +10,16 @@ namespace scheduler
         static void Main(string[] args)
         {
             Server server = null;
-
+            
             try
             {
-                var port = int.Parse(args[0]);
+                var host = args[0];
+                var port = int.Parse(args[1]);
                 var reflectionServiceImpl = new ReflectionServiceImpl(DIDASchedulerService.Descriptor, ServerReflection.Descriptor);
                 server = new Server
                 {  
-                    Services = { DIDASchedulerService.BindService(new SchedulerServiceImpl()), ServerReflection.BindService(reflectionServiceImpl) },
-                    Ports = {new ServerPort("localhost", port, ServerCredentials.Insecure)}
+                    Services = { DIDASchedulerService.BindService(new SchedulerServiceImpl(host, port)), ServerReflection.BindService(reflectionServiceImpl) },
+                    Ports = {new ServerPort(host, port, ServerCredentials.Insecure)}
                 };
                 server.Start();
                 Console.WriteLine("The Scheduler server is listening on the port: " + port);

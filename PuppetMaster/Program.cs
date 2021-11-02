@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Reflection;
@@ -9,7 +10,7 @@ namespace PuppetMaster
 {
     class Program
     {
-        private const int Port = 2000;
+        private const int Port = 10001;
         static void Main(string[] args)
         {
             if (args.Length != 0 && args[0] == "GRPC-SERVER")
@@ -47,13 +48,6 @@ namespace PuppetMaster
             {
                 Console.WriteLine("An exception occurred\n - Details: " + e.Message);
             }
-
-            // Console.WriteLine("------------------------\n");
-            //
-            // Console.Write("Press 'n' and Enter to close the app, or press any other key and Enter to continue: ");
-            // if (Console.ReadLine() == "n") exit = true;
-            //
-            // Console.WriteLine("\n");
             Console.Clear();
         }
         return;
@@ -80,40 +74,103 @@ namespace PuppetMaster
             switch (operation.Split(" ")[0])
             {
                 case "worker":
-                    ShowSubMenuWorker(operation);
+                    Worker(operation);
                     break;
                 case "storage":
-                    ShowSubMenuStorage(operation);
+                    Storage(operation);
                     break;
                 case "scheduler":
-                    ShowSubMenuScheduler(operation);
+                    Scheduler(operation);
                     break;
                 case "client":
-                    ShowSubMenuRunApplication(operation);
+                    RunApplication(operation);
                     break;
                 case "populate":
-                    
+                    Populate(operation);
                     break;
-                // Return text for an incorrect option entry.
+                case "crash":
+                    CrashStorage(operation);
+                    break;
+                case "wait":
+                    Wait(operation);
+                    break;
+                case "status":
+                    Status(operation);
+                    break;
+                case "listServer":
+                    ListServer(operation);
+                    break;
+                case "listGlobal":
+                    ListGlobal();
+                    break;
                 default:
                     break;
             }
         }
 
-        private static async void ShowSubMenuWorker(string command)
+        private static void Populate(string operation)
         {
-            // Console.WriteLine("Create a new Worker as follows: server_id url gossip_delay and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000 200");
-            // Console.WriteLine("\t--------------------------------------------------------------------");
-            // var parameter = Console.ReadLine();
-            
+            var result = operation.Split(" ");
+            if (result.Length == 2)
+            {
+                var commandLine = new CommandLine();
+                commandLine.Populate(result[1]);
+            }
+        }
+
+        private static void ListGlobal()
+        {
+            var commandLine = new CommandLine();
+            commandLine.ListGlobal();
+        }
+        private static void ListServer(string operation)
+        {
+            var result = operation.Split(" ");
+            if (result.Length == 2)
+            {
+                var commandLine = new CommandLine();
+                commandLine.ListServer(new PmListServerRequest{Id = result[1]}).GetAwaiter().GetResult();
+            }
+        }
+        private static void Status(string operation)
+        {
+            var result = operation.Split(" ");
+            if (result.Length == 1 && result[0].Trim().Equals("status"))
+            {
+                var commandLine = new CommandLine();
+                commandLine.PrintStatus();
+            }
+        }
+        private static void Wait(string operation)
+        {
+            var result = operation.Split(" ");
+            if (result.Length > 1)
+            {
+                try
+                {
+                    Console.WriteLine("Waiting {0} milliseconds", int.Parse(result[1]));
+                    Thread.Sleep(int.Parse(result[1]));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Argument of wait must be a number");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Command value is invalid, must be a valid number for wait");
+            }
+        }
+
+        private static async void Worker(string command)
+        {
+
             if (command != null)
             {
                 var parameters = command.Split(" ");
                 if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
-                    Console.WriteLine(parameters);
                     var request = new PmCreateWorkerRequest {Id = parameters[1], Url = parameters[2], GossipDelay = int.Parse(parameters[3])};
                     var result = await Task.FromResult(commandLine.createWorker(request));
                     Console.WriteLine(result.Result);
@@ -121,19 +178,14 @@ namespace PuppetMaster
             }
         }
         
-        private static async void ShowSubMenuStorage(string command)
+        private static async void Storage(string command)
         {
-            // Console.WriteLine("Create a new Storage as follows: server_id,url,gossip_delay and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000 200");
-            // Console.WriteLine("\t---------------------------------------------------------------------");
-            // var parameter = Console.ReadLine();
             if (command != null)
             {
                 var parameters = command.Split(" ");
                 if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
-                    Console.WriteLine(parameters);
                     var request = new PmCreateStorageRequest {Id = parameters[1], Url = parameters[2], GossipDelay = int.Parse(parameters[3])};
                     var result = await Task.FromResult(commandLine.createStorage(request));
                     Console.WriteLine(result.Result);
@@ -141,12 +193,8 @@ namespace PuppetMaster
             }
         }
         
-        private static async void ShowSubMenuScheduler(string command)
+        private static async void Scheduler(string command)
         {
-            // Console.WriteLine("Create a new Scheduler as follows: server_id url and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000");
-            // Console.WriteLine("\t---------------------------------------------------------");
-            // var parameter = Console.ReadLine();
             if (command != null)
             {
                 var parameters = command.Split(" ");
@@ -154,28 +202,40 @@ namespace PuppetMaster
                 {
                     var commandLine = new CommandLine();
                     var request = new PmCreateSchedulerRequest {Id = parameters[1], Url = parameters[2]};
-                    var result = await Task.FromResult(commandLine.createScheduler(request));
+                    var result = await Task
+                        .FromResult(commandLine.createScheduler(request)).GetAwaiter().GetResult();
                     Console.WriteLine(result.Result);
                 }
             }
         }
         
-        private static async void ShowSubMenuRunApplication(string command)
+        private static async void RunApplication(string command)
         {
-            // Console.WriteLine("Run application as follows: input, file_path and press enter:");
-            // Console.WriteLine("\texample: 1234 /usr/share");
-            // Console.WriteLine("\t---------------------------------------------------------");
-            // var parameter = Console.ReadLine();
             if (command != null)
             {
                 var parameters = command.Split(" ");
                 if (parameters.Length == 3)
                 {
                     var commandLine = new CommandLine();
-                    Console.WriteLine(parameters);
-                    
-                    var result = await Task.FromResult(commandLine.runApplication(parameters[1], parameters[2]));
-                    Console.WriteLine(result.Result);
+
+                    var result = await Task
+                        .FromResult(commandLine.runApplication(parameters[1], parameters[2])).GetAwaiter().GetResult();
+                    Console.WriteLine(result.Ok);
+                }
+            }
+        }
+        
+        private static async void CrashStorage(string command)
+        {
+            if (command != null)
+            {
+                var parameters = command.Split(" ");
+                if (parameters.Length == 2)
+                {
+                    var commandLine = new CommandLine();
+
+                    var result = await Task.FromResult(commandLine.CrashStorage(parameters[1])).GetAwaiter().GetResult();
+                    Console.WriteLine(result.Ok);
                 }
             }
         }

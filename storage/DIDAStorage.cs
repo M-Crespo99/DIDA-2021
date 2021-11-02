@@ -13,6 +13,9 @@ namespace DIDAStorage
 
         private int _replicaId = 0;
 
+        private int _numberOfWrites = 0;
+        private int _numberOfReads = 0;
+
         private Dictionary<string, List<DIDAValue>> _values = new Dictionary<string, List<DIDAValue>>();
 
         public Storage(int replicaId, bool debug)
@@ -35,6 +38,9 @@ namespace DIDAStorage
                 DIDAValue dValue = FindValue(id, version);
                 if (dValue.value != null)
                 {
+                    lock(this){
+                        this._numberOfReads++;
+                    }
                     return new DIDARecord { id = id, version = dValue.version, val = dValue.value };
                 }
                 if(this._debug){
@@ -98,7 +104,9 @@ namespace DIDAStorage
                         replicaId = this._replicaId,
                         versionNumber = 0
                     };
-
+                    lock(this){
+                        this._numberOfWrites++;
+                    }
                     currentValues.Add(valueToWrite);
                 }
             }
@@ -185,12 +193,33 @@ namespace DIDAStorage
         }
         public DIDAStorage.Proto.DIDAListServerReply getProtoRecords()
         {
+            
+            Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
+            Console.WriteLine("Storage Node {0}:", this._replicaId);
 
             var reply = new DIDAStorage.Proto.DIDAListServerReply();
+
+            if(this._values.Count == 0){
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("No Records stored in this node.");
+                Console.ResetColor();
+
+            }
+
             foreach(KeyValuePair<string, List<DIDAStorage.DIDAValue>> currentRecords in this._values){
+                Console.WriteLine("Record Key: {0}.", currentRecords.Key);
                 var currentCompleteRecord = new DIDAStorage.Proto.DIDACompleteRecord();
                 currentCompleteRecord.Id = currentRecords.Key;
                 foreach(DIDAStorage.DIDAValue currentVersion in currentRecords.Value){
+                    if(currentVersion .Equals(currentRecords.Value.Last())){
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("--> Most Recent Value:");
+                    }
+
+                    Console.WriteLine("\tValue: {0}.", currentVersion.value);
+                    Console.WriteLine("\tVersion Number: {0}.", currentVersion.version.versionNumber);
+                    Console.WriteLine("\tReplica ID: {0}.", currentVersion.version.replicaId);
+                    Console.ResetColor();
                     currentCompleteRecord.Versions.Add(new DIDAStorage.Proto.DIDARecordReply{
                         Id = currentRecords.Key,
                         Version = new DIDAStorage.Proto.DIDAVersion{
@@ -202,6 +231,7 @@ namespace DIDAStorage
                 }
                 reply.Records.Add(currentCompleteRecord);
             }
+            Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
             return reply;
         }
 
@@ -214,6 +244,41 @@ namespace DIDAStorage
                     this._values.Add(id, new List<DIDAValue>());
                 }
             }
+        }
+
+        public void printStatus(){
+            Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
+            Console.WriteLine("Storage Node Status:");
+            Console.WriteLine("\tID: {0}.", this._replicaId);
+            Console.WriteLine("\tStatus: Running.");
+            Console.WriteLine("\tPerformed {0} Read Operations.", this._numberOfReads);
+            Console.WriteLine("\tPerformed {0} Write Operations.", this._numberOfWrites);
+            
+            int counter = 0;
+            List<string> l = new List<string>();
+            lock(this){
+                foreach(KeyValuePair<string, List<DIDAStorage.DIDAValue>> currentRecords in this._values){
+                    counter+= currentRecords.Value.Count;
+                    l.Add(currentRecords.Key);
+                }
+            }
+            Console.WriteLine("\tNumber of Records Stored: {0}.", counter);
+            Console.Write("\tStored Keys: ");
+            foreach(string s in l){
+                if(s == l.Last()){
+                    Console.Write(s + ".");
+                }else{
+                    Console.Write(s + ", ");
+                }
+
+            }
+            Console.WriteLine();
+            Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
+        }
+
+        public bool toggleDebug(){
+            this._debug = !this._debug;
+            return this._debug;
         }
     }
 }
