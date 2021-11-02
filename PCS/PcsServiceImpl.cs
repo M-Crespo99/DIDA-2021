@@ -277,7 +277,8 @@ namespace PCS
             {
                 try
                 {
-                    string[] lines = File.ReadAllLines(String.Format(@"{0}", request.DataFilePath));
+                    var dir = Environment.CurrentDirectory;
+                    string[] lines = File.ReadAllLines(String.Format(dir + "/populate_files/" + request.DataFilePath));
                     var firstStorageUrl = _idHostStorage.Values.First();
                     var client = new Client(firstStorageUrl);
                     
