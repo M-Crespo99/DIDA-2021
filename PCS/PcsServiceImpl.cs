@@ -135,11 +135,11 @@ namespace PCS
                 var argument = "";
                 if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
                 {
-                    argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, newHost, newPort);    
+                    argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1} {2}", dir, newHost, newPort);    
                 }
                 else
                 {
-                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\scheduler.dll {1}", dir, newHost, newPort);
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\scheduler.dll {1} {2}", dir, newHost, newPort);
                 }
                 
                 executeRunCommand("dotnet", argument);
