@@ -10,21 +10,47 @@ using DIDAWorker.Proto;
 using System.Linq;
 namespace worker
 {
+
+    public class StorageProxy : IDIDAStorage{
+
+        public StorageProxy(){
+
+        }
+
+        private DIDAStorageNode locateFunction(){
+            return new DIDAWorker.DIDAStorageNode{
+                serverId = "1",
+            };
+        }
+        public DIDAVersion write(DIDAWriteRequest request){
+            
+
+            throw new NotImplementedException();
+        }
+
+        public DIDAVersion updateIfValueIs(DIDAUpdateIfRequest request){
+            throw new NotImplementedException();
+        }
+
+        public DIDARecordReply read(DIDAReadRequest request){
+            throw new NotImplementedException();
+        }
+    }
     public class WorkerServiceImpl : DIDAWorkerService.DIDAWorkerServiceBase
     {
         List<DIDAStorageNode> storageReplicas = new List<DIDAStorageNode>();
 
-        delLocateStorageId locationFunction;
 
         private int operatorCounter = 0;
 
+        private IDIDAStorage _storageProxy;
+
         public WorkerServiceImpl(){
-            this.locationFunction = new delLocateStorageId(this.locateStorage);
+            this._storageProxy = new StorageProxy();
         }
 
         public async override Task<DIDAReply> workOnOperator(DIDAWorker.Proto.DIDARequest request, ServerCallContext context)
         {
-            Console.WriteLine("ENTERED WORKER");
             lock(this){
                 operatorCounter++;
             }
@@ -74,7 +100,7 @@ namespace worker
                             string newOutput = "";
                             try{
                                 Console.WriteLine("Going to storage");
-                                operatorFromReflection.ConfigureStorage(storageReplicas.ToArray(), locationFunction);                            
+                                operatorFromReflection.ConfigureStorage(this._storageProxy);                            
                                 newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                             }catch(RpcException e){
                                 Console.WriteLine(e.Message);
@@ -118,7 +144,7 @@ namespace worker
         {
             return new DIDAWorker.DIDAMetaRecord()
             {
-                id = metaRecord.Id
+                Id = metaRecord.Id
             };
         }
 
@@ -126,16 +152,14 @@ namespace worker
         {
             return new DIDAWorker.Proto.DIDAMetaRecord()
             {
-                Id = metaRecord.id
+                Id = metaRecord.Id
                 
             };
         }
 
         private DIDAWorker.DIDAStorageNode locateStorage(string id, DIDAWorker.OperationType type){
             //This is temporary. There is only one storage with id = 1, for now.
-            return new DIDAWorker.DIDAStorageNode{
-                serverId = "1",
-            };
+            
         }
     }
 }
