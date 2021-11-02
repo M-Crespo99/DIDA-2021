@@ -17,27 +17,70 @@ namespace worker
 {
 
     public class StorageProxy : IDIDAStorage{
-        StorageFrontend.frontend f = new StorageFrontend.StorageFrontend();
+        StorageFrontend.StorageFrontend _frontend;
 
-
+        DIDAStorageNode _storageNode;
         public StorageProxy(){
+            
         }
 
         private DIDAStorageNode locateFunction(string idToRead){
             return new DIDAWorker.DIDAStorageNode{
+                host = "localhost",
                 serverId = "1",
+                port = 5001
             };
         }
-        public DIDAVersion write(DIDAWriteRequest request){
-            throw new NotImplementedException();
+        public DIDAWorker.DIDAVersion  write(DIDAWriteRequest request){
+            this._storageNode = this.locateFunction("");
+
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+
+            var reply = this._frontend.Write(request.Id, request.Val);
+
+            return new DIDAWorker.DIDAVersion{
+                VersionNumber = reply.VersionNumber,
+                ReplicaId = reply.ReplicaId
+            };
         }
 
-        public DIDAVersion updateIfValueIs(DIDAUpdateIfRequest request){
-            throw new NotImplementedException();
+        public DIDAWorker.DIDAVersion updateIfValueIs(DIDAUpdateIfRequest request){
+            this._storageNode = this.locateFunction("");
+
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+
+            var reply = this._frontend.UpdateIfValueIs(request.Id, request.Oldvalue, request.Newvalue);
+            
+            if(reply != null){
+                return new DIDAWorker.DIDAVersion{
+                    VersionNumber = reply.VersionNumber,
+                    ReplicaId = reply.ReplicaId
+                };
+
+            }else{
+                return new DIDAWorker.DIDAVersion{
+                    VersionNumber = -1,
+                    ReplicaId = -1
+                }; 
+            }
+
         }
 
         public DIDARecordReply read(DIDAReadRequest request){
-            throw new NotImplementedException();
+            this._storageNode = this.locateFunction("");
+
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+
+            var reply = this._frontend.Read(request.Id, request.Version.VersionNumber, request.Version.ReplicaId);
+
+            return new DIDAWorker.DIDARecordReply{
+                Id = reply.Id,
+                Version = new DIDAWorker.DIDAVersion{
+                    VersionNumber = reply.Version.VersionNumber,
+                    ReplicaId = reply.Version.ReplicaId
+                },
+                Val = reply.Val
+            };
         }
     }
     public class WorkerServiceImpl : DIDAWorkerService.DIDAWorkerServiceBase
@@ -49,18 +92,16 @@ namespace worker
 
         private int operatorCounter = 0;
 
-        private IDIDAStorage _storageProxy;
-
         //First value of Tuple = number of executions, Second number is total elapsed time
-
         private ConcurrentDictionary<String, Tuple<int, int>> operatorDictionary = new ConcurrentDictionary<string, Tuple<int, int>>();
 
         private bool isDebug = false;
         private String debugHost = "";
-         private int debugPort = 0;
+        private int debugPort = 0;
+
+        private int _totalTime = 0;
 
         public WorkerServiceImpl(String id){
-            this._storageProxy = new StorageProxy();
             this.workerId = id;
         }
 
@@ -99,9 +140,12 @@ namespace worker
                             string newOutput = "";
                             try{
                                 Console.WriteLine("Going to storage");
-                                operatorFromReflection.ConfigureStorage(this._storageProxy);                            
+
+                                StorageProxy proxy = new StorageProxy();
+                                operatorFromReflection.ConfigureStorage(proxy);                            
                                 newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                                 stopwatch.Stop();
+                                operatorCounter++;
                             }catch(RpcException e){
                                 Console.WriteLine(e.Message);
                             }
@@ -134,7 +178,9 @@ namespace worker
             }
 
             if(!foundDLL){
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("ERROR: Could not locate operator: " + className);
+                Console.ResetColor();
             }
 
             return await Task.FromResult(new DIDAReply());
@@ -154,15 +200,20 @@ namespace worker
         
         private void StoreOperatorInformationInDict(string className, Stopwatch stopwatch)
         {
+            int elapsedTime = stopwatch.Elapsed.Milliseconds;
             if (operatorDictionary.ContainsKey(className))
             {
                 var currValue = operatorDictionary[className];
                 operatorDictionary[className] = new Tuple<int, int>(currValue.Item1 + 1,
-                    currValue.Item2 + stopwatch.Elapsed.Milliseconds);
+                    currValue.Item2 + elapsedTime);
             }
             else
             {
-                operatorDictionary[className] = new Tuple<int, int>(1, stopwatch.Elapsed.Milliseconds);
+                operatorDictionary[className] = new Tuple<int, int>(1, elapsedTime);
+            }
+
+            lock(this){
+                this._totalTime += elapsedTime;
             }
         }
 
@@ -228,11 +279,12 @@ namespace worker
         public override Task<StatusReply> status(StatusRequest request, ServerCallContext context)
         {
             Console.WriteLine("-----------------------");
-            Console.WriteLine("Worker");
+            Console.WriteLine("Worker {0}", this.workerId);
+            Console.WriteLine("Total Time Spent working: {0}", this._totalTime);
             Console.WriteLine("Number of operators executed: " + operatorCounter);
             foreach (var op in operatorDictionary)
             {
-                Console.WriteLine("Operator {0} was executed {1} times with an average computation time of {2}", op.Key, op.Value.Item1, op.Value.Item2/op.Value.Item1 );
+                Console.WriteLine("Operator {0} was executed {1} times with an average computation time of {2}", op.Key, op.Value.Item1, ((float) op.Value.Item2)/op.Value.Item1 );
             }
             Console.WriteLine("-----------------------");
             return Task.FromResult<StatusReply>(new StatusReply{Ok = true});
