@@ -104,5 +104,13 @@ namespace PCS
             }
             ShutdownChannel();
         }
+
+        public void addStorage(string id, string host, int port)
+        {
+            var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+
+            client.addStorage(new AddStorageRequest { Host = host, Port = port, Id = id});
+            
+        }
     }
 }
