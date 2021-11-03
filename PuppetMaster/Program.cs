@@ -27,37 +27,32 @@ namespace PuppetMaster
         { 
             bool exit = false;
             
-
-        while (!exit)
-        {
+            
             ShowTitle();
-            // ShowMenu();
-            string command = Console.ReadLine();
-            try
+
+            while (!exit)
             {
-                
-                if (command != null)
+
+                // ShowMenu();
+                Console.Write("> ");
+                string command = Console.ReadLine();
+                try
                 {
-                    if (command.Split(" ").Length > 0)
+                    
+                    if (command != null)
                     {
-                        SelectOption(command);   
+                        if (command.Split(" ").Length > 0)
+                        {
+                            SelectOption(command);   
+                        }
                     }
                 }
+                catch (Exception e)
+                {
+                    Console.WriteLine("An exception occurred\n - Details: " + e.Message);
+                }
             }
-            catch (Exception e)
-            {
-                Console.WriteLine("An exception occurred\n - Details: " + e.Message);
-            }
-
-            // Console.WriteLine("------------------------\n");
-            //
-            // Console.Write("Press 'n' and Enter to close the app, or press any other key and Enter to continue: ");
-            // if (Console.ReadLine() == "n") exit = true;
-            //
-            // Console.WriteLine("\n");
-            Console.Clear();
-        }
-        return;
+            return;
         }
         private static void ShowTitle()
         {
@@ -81,21 +76,22 @@ namespace PuppetMaster
             switch (operation.Split(" ")[0])
             {
                 case "worker":
-                    ShowSubMenuWorker(operation);
+                    Worker(operation);
                     break;
                 case "storage":
-                    ShowSubMenuStorage(operation);
+                    Storage(operation);
                     break;
                 case "scheduler":
-                    ShowSubMenuScheduler(operation);
+                    Scheduler(operation);
                     break;
                 case "client":
-                    ShowSubMenuRunApplication(operation);
+                    RunApplication(operation);
                     break;
                 case "populate":
+                    Populate(operation);
                     break;
                 case "crash":
-                    ShowSubMenuRCrashStorage(operation);
+                    CrashStorage(operation);
                     break;
                 case "wait":
                     Wait(operation);
@@ -106,20 +102,48 @@ namespace PuppetMaster
                 case "listServer":
                     ListServer(operation);
                     break;
-                // Return text for an incorrect option entry.
+                case "listGlobal":
+                    ListGlobal();
+                    break;
                 default:
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Unknown command: {0}.", operation);
+                    Console.ResetColor();
+
                     break;
             }
         }
-        
+
+        private static void Populate(string operation)
+        {
+            var result = operation.Split(" ");
+            if (result.Length == 2)
+            {
+                var commandLine = new CommandLine();
+                commandLine.Populate(result[1]);
+            }else{
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Could run populate command: Could not parse command: {0}.", operation);
+                Console.ResetColor();
+            }
+        }
+
+        private static void ListGlobal()
+        {
+            var commandLine = new CommandLine();
+            commandLine.ListGlobal();
+        }
         private static void ListServer(string operation)
         {
-            Console.WriteLine(operation);
             var result = operation.Split(" ");
             if (result.Length == 2)
             {
                 var commandLine = new CommandLine();
                 commandLine.ListServer(new PmListServerRequest{Id = result[1]}).GetAwaiter().GetResult();
+            }else{
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Could not run listServer: Could not parse command: {0}.", operation);
+                Console.ResetColor();
             }
         }
         private static void Status(string operation)
@@ -141,7 +165,7 @@ namespace PuppetMaster
                     Console.WriteLine("Waiting {0} milliseconds", int.Parse(result[1]));
                     Thread.Sleep(int.Parse(result[1]));
                 }
-                catch (Exception e)
+                catch (Exception )
                 {
                     Console.WriteLine("Argument of wait must be a number");
                 }
@@ -152,13 +176,9 @@ namespace PuppetMaster
             }
         }
 
-        private static async void ShowSubMenuWorker(string command)
+        private static async void Worker(string command)
         {
-            // Console.WriteLine("Create a new Worker as follows: server_id url gossip_delay and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000 200");
-            // Console.WriteLine("\t--------------------------------------------------------------------");
-            // var parameter = Console.ReadLine();
-            
+
             if (command != null)
             {
                 var parameters = command.Split(" ");
@@ -167,17 +187,26 @@ namespace PuppetMaster
                     var commandLine = new CommandLine();
                     var request = new PmCreateWorkerRequest {Id = parameters[1], Url = parameters[2], GossipDelay = int.Parse(parameters[3])};
                     var result = await Task.FromResult(commandLine.createWorker(request));
-                    Console.WriteLine(result.Result);
+
+                    if(result.Result.Ok){
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("Created Worker succesfully at {0}.", parameters[2]);
+                        Console.ResetColor();
+                    }else{
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Something went wrong creating the Worker.");
+                        Console.ResetColor();
+                    }
+                }else{
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Could not create Worker: Could not parse command: {0}. Expected 3 arguments, got {1}.", command, parameters.Length - 1);
+                    Console.ResetColor();
                 }
             }
         }
         
-        private static async void ShowSubMenuStorage(string command)
+        private static async void Storage(string command)
         {
-            // Console.WriteLine("Create a new Storage as follows: server_id,url,gossip_delay and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000 200");
-            // Console.WriteLine("\t---------------------------------------------------------------------");
-            // var parameter = Console.ReadLine();
             if (command != null)
             {
                 var parameters = command.Split(" ");
@@ -186,17 +215,26 @@ namespace PuppetMaster
                     var commandLine = new CommandLine();
                     var request = new PmCreateStorageRequest {Id = parameters[1], Url = parameters[2], GossipDelay = int.Parse(parameters[3])};
                     var result = await Task.FromResult(commandLine.createStorage(request));
-                    Console.WriteLine(result.Result);
+
+                    if(result.Result.Ok){
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("Created Storage succesfully at {0}.", parameters[2]);
+                        Console.ResetColor();
+                    }else{
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Something went wrong creating the storage.");
+                        Console.ResetColor();
+                    }
+                }else{
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Could not create Storage: Could not parse command: {0}. Expected 3 arguments, got {1}.", command, parameters.Length - 1);
+                    Console.ResetColor();
                 }
             }
         }
         
-        private static async void ShowSubMenuScheduler(string command)
+        private static async void Scheduler(string command)
         {
-            // Console.WriteLine("Create a new Scheduler as follows: server_id url and press enter:");
-            // Console.WriteLine("\texample: 123 localhost:10000");
-            // Console.WriteLine("\t---------------------------------------------------------");
-            // var parameter = Console.ReadLine();
             if (command != null)
             {
                 var parameters = command.Split(" ");
@@ -206,12 +244,26 @@ namespace PuppetMaster
                     var request = new PmCreateSchedulerRequest {Id = parameters[1], Url = parameters[2]};
                     var result = await Task
                         .FromResult(commandLine.createScheduler(request)).GetAwaiter().GetResult();
-                    Console.WriteLine(result.Result);
+                    
+                    if(result.Ok){
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("Created Scheduler succesfully at {0}.", parameters[2]);
+                        Console.ResetColor();
+                    }else{
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Something went wrong creating the storage.");
+                        Console.ResetColor();
+                    }
+                    return;
+                }else{
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Could not create Scheduler: Could not parse command: {0}. Expected 2 arguments, got {1}.", command, parameters.Length - 1);
+                    Console.ResetColor();
                 }
             }
         }
         
-        private static async void ShowSubMenuRunApplication(string command)
+        private static async void RunApplication(string command)
         {
             if (command != null)
             {
@@ -223,11 +275,15 @@ namespace PuppetMaster
                     var result = await Task
                         .FromResult(commandLine.runApplication(parameters[1], parameters[2])).GetAwaiter().GetResult();
                     Console.WriteLine(result.Ok);
+                }else{
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Could not run application: Could not parse command: {0}.", command);
+                    Console.ResetColor();
                 }
             }
         }
         
-        private static async void ShowSubMenuRCrashStorage(string command)
+        private static async void CrashStorage(string command)
         {
             if (command != null)
             {
@@ -238,6 +294,10 @@ namespace PuppetMaster
 
                     var result = await Task.FromResult(commandLine.CrashStorage(parameters[1])).GetAwaiter().GetResult();
                     Console.WriteLine(result.Ok);
+                }else{
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Could not crash storage: Could not parse command: {0}.", command);
+                    Console.ResetColor();
                 }
             }
         }

@@ -46,6 +46,13 @@ namespace PuppetMaster
             pcsClient.ListServer(request.Id);
             return await Task.FromResult(new PmListServerReply());
         }
+        
+        public void ListGlobal()
+        {
+            //TODO should look into the PCS available and not hard coded below
+            var pcsClient = new PcsClient(_pcsUrl);
+            pcsClient.ListGlobal();
+        }
 
         public async Task<PmRunApplicationReply> runApplication(string input, string filePath)
         {
@@ -80,6 +87,12 @@ namespace PuppetMaster
         {
             var pcsClient = new PcsClient(_pcsUrl);
             pcsClient.PrintStatus();
+        }
+
+        public void Populate(string path)
+        {
+            var pcsClient = new PcsClient(_pcsUrl);
+            pcsClient.Populate(path);
         }
     }
 }

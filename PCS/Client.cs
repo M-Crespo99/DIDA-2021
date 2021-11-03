@@ -5,8 +5,6 @@ using DIDAWorker.Proto;
 using Grpc.Core;
 using StatusRequest = DIDAStorage.Proto.StatusRequest;
 
-// using DIDAWorker.Proto;
-
 namespace PCS
 {
     public class Client
@@ -94,6 +92,17 @@ namespace PCS
         private void ShutdownChannel()
         {
             _channel.ShutdownAsync().Wait();
+        }
+
+        public void WriteIntoStorage(string[] lines)
+        {
+            var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+            foreach (var line in lines)
+            {
+                var idValue = line.Split(",");
+                client.writeAsync(new DIDAWriteRequest {Id = idValue[0], Val = idValue[1]}).GetAwaiter().GetResult();
+            }
+            ShutdownChannel();
         }
     }
 }

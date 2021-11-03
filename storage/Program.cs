@@ -26,17 +26,19 @@ namespace storage
                 return false;
             }
 
-            string[] URLParts = args[1].Split(":");
+
+
+            string[] URLParts = args[1].Replace("http://", "").Replace("https://", "").Split(":");
 
             if(URLParts.Length != 2){
-                Console.WriteLine($"Unable to parse URL: '{args[1]}'");
+                Console.WriteLine($"Unable to parse URL: '{args[1].Replace("http://", "").Replace("https://", "")}'");
                 return false;
             }
 
-            host = args[1].Split(":")[0];
+            host = URLParts[0];
 
             try{
-                port = Int32.Parse(args[1].Split(":")[1]);
+                port = Int32.Parse(URLParts[1]);
 
             }catch(FormatException){
                 Console.WriteLine($"Unable to parse server port: '{args[1]}'");

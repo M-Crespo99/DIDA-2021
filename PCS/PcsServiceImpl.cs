@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -134,11 +135,11 @@ namespace PCS
                 var argument = "";
                 if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
                 {
-                    argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1}", dir, newHost, newPort);    
+                    argument = String.Format("{0}/bin/Debug/net5.0/scheduler.dll {1} {2}", dir, newHost, newPort);    
                 }
                 else
                 {
-                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\scheduler.dll {1}", dir, newHost, newPort);
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\scheduler.dll {1} {2}", dir, newHost, newPort);
                 }
                 
                 executeRunCommand("dotnet", argument);
@@ -154,33 +155,23 @@ namespace PCS
             }
         }
 
-        //Lists all objects stored on the server identified by server id
-        // public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
-        // {
-        //     Console.WriteLine("## Listing server with the ID: ##"+request.Id);
-        //     Console.WriteLine(request.ToString());
-        //     Console.WriteLine("## ------ ##");
-        //     List<string> objects = new List<string>();
-        //     
-        //     if (_idHostStorage[request.Id] != null)
-        //     {
-        //         var client = new Client(_idHostStorage[request.Id]);
-        //         var result = client.ListServerStorage();
-        //         foreach (var didaCompleteRecord in result.Records)
-        //         {
-        //             objects.Add(didaCompleteRecord.ToString());
-        //         }
-        //         Console.WriteLine(objects);
-        //         return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
-        //     }
-        //     return await Task.FromResult(new PcsListServerReply {Objects = { objects }});
-        // }
-
         // Lists all objects stored on the system.
         public override async Task<PcsListGlobalReply> listGlobal(PcsListGlobalRequest request, ServerCallContext context)
         {
             Console.WriteLine("## Listing all objects stored on the system ##");
-            return await base.listGlobal(request, context);
+            foreach (var keyValuePair in _idHostStorage)
+            {
+                var client = new Client(keyValuePair.Value);
+                client.ListServerStorage();
+            }
+            
+            foreach (var keyValuePair in _idWorker)
+            {
+                var client = new Client(keyValuePair.Value);
+                client.ListServerWorker();
+            }
+
+            return await Task.FromResult(new PcsListGlobalReply());
         }
 
         public override async Task<PcsGetStoragesReply> getStorages(PcsGetStoragesRequest request, ServerCallContext context)
@@ -202,33 +193,36 @@ namespace PCS
         public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
         {
             var storageUrl = _idHostStorage[request.Id];
-            if (storageUrl == null) return await Task.FromResult(new PcsListServerReply());
-            
-            var client = new Client(storageUrl);
-            var result = client.ListServerStorage();
-            
-            foreach (var didaCompleteRecord in result.Records)
+            if (storageUrl != null)
             {
-                Console.WriteLine(didaCompleteRecord.Id);
-                foreach (var didaRecordReply in didaCompleteRecord.Versions)
-                {
-                    Console.WriteLine(didaRecordReply.Id);   
-                    Console.WriteLine(didaRecordReply.Val);   
-                    Console.WriteLine(didaRecordReply.Version.ReplicaId);   
-                    Console.WriteLine(didaRecordReply.Version.VersionNumber);   
-                }
+                var client = new Client(storageUrl);
+                var result = client.ListServerStorage();
+            
+                // foreach (var didaCompleteRecord in result.Records)
+                // {
+                //     Console.WriteLine(didaCompleteRecord.Id);
+                //     foreach (var didaRecordReply in didaCompleteRecord.Versions)
+                //     {
+                //         Console.WriteLine(didaRecordReply.Id);   
+                //         Console.WriteLine(didaRecordReply.Val);   
+                //         Console.WriteLine(didaRecordReply.Version.ReplicaId);   
+                //         Console.WriteLine(didaRecordReply.Version.VersionNumber);   
+                //     }
+                // }
             }
-            
             var workerUrl = _idWorker[request.Id];
-            if (workerUrl == null) return await Task.FromResult(new PcsListServerReply());
-            
-            var clientWorker = new Client(storageUrl);
-            var resultWorker = clientWorker.ListServerWorker();
-            foreach (var resultWorkerDetail in resultWorker.Details)
+            if (workerUrl != null)
             {
-                Console.WriteLine(resultWorkerDetail.OperatorName);
-                Console.WriteLine(resultWorkerDetail.TotalTime);
-                Console.WriteLine(resultWorkerDetail.Executions);
+                var clientWorker = new Client(workerUrl);
+                var resultWorker = clientWorker.ListServerWorker();
+                foreach (var resultWorkerDetail in resultWorker.Details)
+                {
+                    Console.WriteLine(resultWorkerDetail.OperatorName);
+                    Console.WriteLine(resultWorkerDetail.TotalTime);
+                    Console.WriteLine(resultWorkerDetail.Executions);
+                }
+            
+                return await Task.FromResult(new PcsListServerReply());
             }
             
             return await Task.FromResult(new PcsListServerReply());
@@ -275,12 +269,28 @@ namespace PCS
             //     var client = new Client(scheduler);
             //     client.PrintSchedulerStatus();
             // }
-            return await Task.FromResult(new PcsStatusReply {});
+            return await Task.FromResult(new PcsStatusReply());
         }
 
         public override async Task<PopulateReply> populate(PopulateRequest request, ServerCallContext context)
         {
-            return await base.populate(request, context);
+            if (!_idHostStorage.IsEmpty)
+            {
+                try
+                {
+                    var dir = Environment.CurrentDirectory;
+                    string[] lines = File.ReadAllLines(String.Format(dir + "/populate_files/" + request.DataFilePath));
+                    var firstStorageUrl = _idHostStorage.Values.First();
+                    var client = new Client(firstStorageUrl);
+                    
+                    if (lines.Length > 0) { client.WriteIntoStorage(lines); }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+            return await Task.FromResult(new PopulateReply());
         }
     }
 }

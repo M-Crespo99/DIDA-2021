@@ -38,4 +38,8 @@
     <Protobuf Include="../Protos/Scheduler.proto" GrpcServices="Client" Link="Protos/Scheduler.proto" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\StorageFrontend\StorageFrontend.csproj" />
+  </ItemGroup>
+
 </Project>
