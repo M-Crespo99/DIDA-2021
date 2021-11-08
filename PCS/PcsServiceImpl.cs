@@ -87,7 +87,10 @@ namespace PCS
                     .Replace("https://", "")
                     .Split(":")[1];
 
-                var host = String.Format("localhost:{0}", newPort);
+                var host = request.Url
+                    .Replace("http://", "")
+                    .Replace("https://", "")
+                    .Split(":")[0];
 
                 var argument = "";
                 if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
@@ -98,18 +101,13 @@ namespace PCS
                 {
                     argument = String.Format("{0}\\bin\\Debug\\net5.0\\storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);
                 }
-                
-                
+
                 executeRunCommand("dotnet", argument);
-
-             
-
-                
 
                 //Make sure all the storages know of the new storage
                 foreach(var entry in _idHostStorage){
                     var client = new Client(entry.Value);
-                    client.addStorage(request.Id, request.Url.Split(":")[0], Int32.Parse(request.Url.Split(":")[1]));
+                    client.addStorage(request.Id, host, Int32.Parse(newPort));
                 }
 
                 _idHostStorage.TryAdd(request.Id, request.Url);
@@ -121,11 +119,13 @@ namespace PCS
                 Console.WriteLine("Done.");
                 var ClientForNewStorage = new Client(request.Url);
                 foreach(var entry in _idHostStorage){
-                    string entryHost = entry.Value.Split(":")[0];
-                    int entryPort = Int32.Parse(entry.Value.Split(":")[1]);
+                    Console.WriteLine(entry.Value);
+                    var url = entry.Value.Replace("http://", "").Replace("https://", "");
+                    string entryHost = url.Split(":")[0];
+                    int entryPort = Int32.Parse(url.Split(":")[1]);
 
                     //Dont send you to yourself
-                    if((entryHost == request.Url.Split(":")[0]) && (entryPort == Int32.Parse(request.Url.Split(":")[1]))){
+                    if((entryHost == host) && (entryPort == Int32.Parse(newPort))){
                         continue;
                     }
                     ClientForNewStorage.addStorage(entry.Key, entryHost, entryPort);
