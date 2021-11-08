@@ -1,7 +1,43 @@
 ﻿using System.Collections.Generic;
-
+using System;
 namespace GossipLib
 {
+    public enum operatioType{
+        READ = 1,
+        WRITE = 2,
+        UPDATE_IF_VALUE_IS = 3,
+    }
+    public class GossipLogRecord{
+        private int _replicaId;
+
+        private LamportClock _updateTS;
+
+        private LamportClock _prev;
+
+        private LamportClock _replicaTS;
+
+        private int _operationIdentifier;
+
+        private operatioType _operationType;
+
+
+        public GossipLogRecord(int replicaId,
+                                LamportClock updateTS,
+                                LamportClock prev,
+                                LamportClock replicaTS,
+                                int operationIdentifier,
+                                operatioType opType){
+            
+
+            this._replicaId = replicaId;
+            this._prev = prev;
+            this._updateTS = updateTS;
+            this._operationIdentifier = operationIdentifier;
+            this._operationType = opType;
+            this._replicaTS = replicaTS;
+        }
+
+    }
     public class LamportClock
     {
         private int _numberOfReplicas {get;}
@@ -21,6 +57,11 @@ namespace GossipLib
             for(int i = 0; i < this._numberOfReplicas; i++){
                 this._clock[i] = list[i];
             }
+        }
+
+        public LamportClock(int[] clock){
+            this._clock = clock;
+            this._numberOfReplicas = clock.Length;
         }
 
 
@@ -61,7 +102,7 @@ namespace GossipLib
             foreach(int i in this._clock){
                 str += i.ToString() + " ";
             }
-            return str + " ]";
+            return str + "]";
         }
 
         public int At(int i){

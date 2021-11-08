@@ -106,7 +106,7 @@ namespace worker
                                 var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);
                                 var newRequest = new DIDARequest(request);
 
-                                client.workOnOperatorAsync(newRequest);
+                                _ = client.workOnOperatorAsync(newRequest);
                             }
                         }
                     }
@@ -234,16 +234,15 @@ namespace worker
     }
 
     public class StorageProxy : IDIDAStorage{
-        StorageFrontend.StorageFrontend _frontend;
 
-        int[] _lamportClock;
+        StorageFrontend.StorageFrontend _frontend;
 
         DIDAStorageNode _storageNode;
 
         List<DIDAStorageNode> _storageNodes;
         public StorageProxy(List<DIDAStorageNode> storageNodes){
             this._storageNodes = storageNodes;
-            this._lamportClock = new int[this._storageNodes.Count];
+
         }
 
 
@@ -258,11 +257,6 @@ namespace worker
             var hash = this.getHash(idToRead);
 
             var node = this.getStorageFromHash(hash);
-
-            Console.WriteLine("WORKER HASH NODE: ");
-            Console.WriteLine("Input: {0} -> {1}.", idToRead, hash);
-            Console.WriteLine("Node Found:\nID: {0}\n{1}:{2}", node.serverId, node.host, node.port);
-            Console.WriteLine("HASH OF NODE: ", node.GetHashCode());
 
             return new DIDAWorker.DIDAStorageNode{
                 host = node.host,
@@ -285,7 +279,7 @@ namespace worker
         public DIDAWorker.DIDAVersion write(DIDAWriteRequest request){
             this._storageNode = this.locateFunction(request.Id);
 
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port, this._storageNodes.Count);
 
             var reply = this._frontend.Write(request.Id, request.Val);
 
@@ -298,7 +292,7 @@ namespace worker
         public DIDAWorker.DIDAVersion updateIfValueIs(DIDAUpdateIfRequest request){
             this._storageNode = this.locateFunction(request.Id);
 
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port, this._storageNodes.Count);
 
             var reply = this._frontend.UpdateIfValueIs(request.Id, request.Oldvalue, request.Newvalue);
             
@@ -320,7 +314,7 @@ namespace worker
         public DIDARecordReply read(DIDAReadRequest request){
             this._storageNode = this.locateFunction(request.Id);
 
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port, this._storageNodes.Count);
 
             var reply = this._frontend.Read(request.Id, request.Version.VersionNumber, request.Version.ReplicaId);
             

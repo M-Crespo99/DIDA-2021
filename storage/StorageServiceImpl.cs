@@ -18,8 +18,6 @@ namespace storage{
     
     public class StorageServerService : DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceBase{
         
-
-        GossipLib.LamportClock _clock;
         DIDAStorage.Storage storage;
 
         ConcurrentDictionary<string, StorageDetails> _otherStorageNodes = new ConcurrentDictionary<string, StorageDetails>();
@@ -67,9 +65,26 @@ namespace storage{
             this.storage.printStatus();
             return Task.FromResult(new DIDAStorage.Proto.StatusReply{ Ok = true});
         }
+        public override Task<DIDAStorage.Proto.GossipReply> gossip(DIDAStorage.Proto.GossipMessage request, ServerCallContext context){
+            
+            //Merge the logs
+            //Merge incoming replica
+            //Apply any updates that have become stable and havent been executed
+            //write(id, value, version, )
+            //Eliminate records from a log 
+            //Keep gossiping
+
+            return Task.FromResult(new DIDAStorage.Proto.GossipReply{});
+        }
 
         public override Task<DIDAStorage.Proto.AddStorageReply> addStorage(DIDAStorage.Proto.AddStorageRequest request, ServerCallContext context){
-            
+
+
+            //If it is a new storage
+            if(!this._otherStorageNodes.ContainsKey(request.Id)){
+                this.storage.incrementStorages();
+            }
+
             if(!(this._otherStorageNodes.TryAdd(request.Id, new StorageDetails(request.Host, request.Port)))){
                 this._otherStorageNodes[request.Id] =  new StorageDetails(request.Host, request.Port);
             }
@@ -83,11 +98,14 @@ namespace storage{
             }
             Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
 
+            
+
             return Task.FromResult(new DIDAStorage.Proto.AddStorageReply{ Ok = true });
         }
 
         private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
             try{
+                Console.WriteLine("READ -> " + request.Clock.ToString());
                 DIDAStorage.DIDAVersion version = new DIDAStorage.DIDAVersion();
 
                 //If version comes as null, we go for the most recent version. DIDAVersion is non nullable so putting -1 was the soltuion
@@ -107,7 +125,8 @@ namespace storage{
                     Id = request.Id,
                     Version = new DIDAStorage.Proto.DIDAVersion{
                         VersionNumber = record.version.versionNumber,
-                        ReplicaId = record.version.replicaId
+                        ReplicaId = record.version.replicaId,
+                        Clock = LClockToProto(record.valueTS)
                     },
                     Val = record.val
                 };
@@ -120,11 +139,34 @@ namespace storage{
         }
 
          private DIDAStorage.Proto.DIDAVersion processWriteRequest(DIDAStorage.Proto.DIDAWriteRequest request){
-            DIDAStorage.DIDAVersion version = storage.Write(request.Id, request.Val);
+            //Check if new update
+            //If new, increment ith element of replica timestamp
+            //Assign new timestamp to u
+            //Put u on the log
+            //If update is stable, process the update
+            //Process: value = apply(value, operation)
+            //         valueTS = merge(valueTS and updateTS)
+            //         Append to executed updates
+
+            Console.WriteLine("WRITE -> " + request.Clock.ToString());
+
+            
+            try{
+                var replicaTimeStamp = this.storage.getReplicaTimestamp(request.Id);
+                if(this.storage.hasRecord(request.Id)){
+                    this.storage.incrementReplicaTSOnRecord(request.Id);
+                }
+                DIDAStorage.DIDAVersion version = storage.Write(request.Id, request.Val, replicaTimeStamp);
             return new DIDAStorage.Proto.DIDAVersion {
                 VersionNumber = version.versionNumber,
                 ReplicaId = version.replicaId,
+                Clock = LClockToProto(version.replicaTS)
             };
+            }catch (Exception e){
+                Console.WriteLine(e.ToString());
+                return new DIDAStorage.Proto.DIDAVersion();
+            }
+
         }
 
         private DIDAStorage.Proto.DIDAVersion processUpdateIfRequest(DIDAStorage.Proto.DIDAUpdateIfRequest request){
@@ -142,6 +184,17 @@ namespace storage{
             }catch(DIDAStorage.Exceptions.DIDAStorageException e){
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
+        }
+        private DIDAStorage.Proto.LamportClock LClockToProto(GossipLib.LamportClock c){
+            DIDAStorage.Proto.LamportClock protoLClock = new DIDAStorage.Proto.LamportClock();
+
+            var l = c.toList();
+
+            foreach(var value in l){
+                protoLClock.Values.Add(value);
+            }
+
+            return protoLClock;
         }
     }
 }

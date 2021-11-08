@@ -40,6 +40,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\StorageFrontend\StorageFrontend.csproj" />
+    <ProjectReference Include="..\GossipLib\GossipLib.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,15 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace DIDAStorage {
+﻿namespace DIDAStorage {
 	public interface IDIDAStorage {
 		DIDARecord Read(string id, DIDAVersion version);
-		DIDAVersion Write(string id, string val);
+		DIDAVersion Write(string id, string val, GossipLib.LamportClock clock);
 		DIDAVersion UpdateIfValueIs(string id, string oldvalue, string newvalue);
 	}
 	public struct DIDARecord {
 		public string id;
 		public DIDAVersion version;
+
+		public GossipLib.LamportClock valueTS;
 		public string val;
 	}
 
@@ -17,6 +16,10 @@ namespace DIDAStorage {
 	public struct DIDAVersion {
 		public int versionNumber;
 		public int replicaId;
+
+		public GossipLib.LamportClock replicaTS;
+
+
 
 		public static bool operator ==(DIDAVersion v1, DIDAVersion v2){
 			return (v1.versionNumber == v2.versionNumber) && (v1.replicaId == v2.replicaId);
@@ -36,14 +39,7 @@ namespace DIDAStorage {
 		}
 
 		public override bool Equals(object obj)
-		{
-			//
-			// See the full list of guidelines at
-			//   http://go.microsoft.com/fwlink/?LinkID=85237
-			// and also the guidance for operator== at
-			//   http://go.microsoft.com/fwlink/?LinkId=85238
-			//
-			
+		{	
 			if (obj == null || GetType() != obj.GetType())
 			{
 				return false;
@@ -59,17 +55,17 @@ namespace DIDAStorage {
 		}
 
 		public override string ToString(){
-			return string.Format("Version Number: {0}\nReplica ID: {1}\n", versionNumber, replicaId);
+			return string.Format("Version Number: {0}\nReplica ID: {1}\nReplica TS: {2}\n", versionNumber, replicaId, replicaTS.ToString());
 		}
 	}
 
 	public struct DIDAValue {
 		public DIDAVersion version;
-
+		public GossipLib.LamportClock valueTS;
 		public string value;
 
 		public override string ToString(){
-			return string.Format("Value: {0}\nVersion: {1}", value, version);
+			return string.Format("Value: {0}\nValue Timestamp: {1}\nVersion: {2}", value, valueTS, version);
 		}
 
 	}

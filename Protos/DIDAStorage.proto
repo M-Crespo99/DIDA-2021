@@ -12,6 +12,16 @@ service DIDAStorageService {
   rpc status(StatusRequest) returns (StatusReply);
   rpc toggleDebug(ToggleDebugRequest) returns (ToggleDebugReply);
   rpc addStorage(AddStorageRequest) returns (AddStorageReply);
+  rpc gossip(GossipMessage) returns (GossipReply);
+}
+
+
+message GossipMessage{
+	repeated GossipLogEntry log = 1;
+}
+
+message GossipReply {
+
 }
 
 message AddStorageRequest {
@@ -49,6 +59,7 @@ message DIDACrashServerReply{
 message DIDAReadRequest {
 	string id = 1;  // the id of the object being read
 	DIDAVersion version = 2;
+	LamportClock clock = 3;
 }
 
 message DIDAListServerRequest{}
@@ -72,17 +83,30 @@ message DIDARecordReply {
 message DIDAVersion {
 	int32 versionNumber = 1;
 	int32 replicaId = 2;
+	LamportClock clock = 3;
 }
 
 message DIDAWriteRequest {
 	string id = 1;
 	string val = 2;
+	LamportClock clock = 3;
 }
 
 message DIDAUpdateIfRequest {
 	string id = 1;
 	string oldvalue = 2;
 	string newvalue = 3;
+}
+
+message GossipLogEntry{
+	int32 replicaID = 1;
+	LamportClock updateClock = 2;
+	string operationType = 3;
+	LamportClock previousClock = 4;
+	int32 updateIdentifier = 5;
+
+	string key = 6;
+	string value = 7;
 }
 
 message LamportClock{

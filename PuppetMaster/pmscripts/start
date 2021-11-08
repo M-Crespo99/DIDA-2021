@@ -1,4 +1,4 @@
-scheduler sc1 http://localhost:2000
-storage 1 http://localhost:5001 0
-worker  w1 http://localhost:4001 0
-worker  w2 http://localhost:4002 0
+scheduler sc1 localhost:2000
+storage 1 localhost:5001 0
+worker w1 localhost:4001 0
+worker w2 localhost:4002 0

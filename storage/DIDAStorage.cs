@@ -16,6 +16,8 @@ namespace DIDAStorage
         private int _numberOfWrites = 0;
         private int _numberOfReads = 0;
 
+        private int _storageCounter = 0;
+
         private Dictionary<string, List<DIDAValue>> _values = new Dictionary<string, List<DIDAValue>>();
 
         public Storage(int replicaId, bool debug)
@@ -41,7 +43,10 @@ namespace DIDAStorage
                     lock(this){
                         this._numberOfReads++;
                     }
-                    return new DIDARecord { id = id, version = dValue.version, val = dValue.value };
+                    Console.WriteLine("Version: ");
+                    Console.WriteLine(dValue.version.ToString());
+
+                    return new DIDARecord { id = id, version = dValue.version, val = dValue.value, valueTS = dValue.valueTS};
                 }
                 if(this._debug){
                     Console.WriteLine("STORAGE: Could not find version of record {0} with: \nVersion Number: {1}\nReplica ID: {2}",
@@ -60,28 +65,45 @@ namespace DIDAStorage
             }
         }
 
-        public DIDAVersion Write(string id, string val)
+
+        public GossipLib.LamportClock processNewGossipMessage(){
+            return null;
+        }
+        public DIDAVersion Write(string id, string val, GossipLib.LamportClock replicaTSToMerge)
         {
+            try{
             DIDAValue valueToWrite = new DIDAValue();
 
             valueToWrite.value = val;
 
-            DIDAVersion newVersion = new DIDAVersion
-            {
-                replicaId = this._replicaId
-            };
-
             CheckIfNewRecord(id);
+
 
             lock (this._values[id])
             {
                 List<DIDAValue> currentValues = this._values[id];
                 //If There are already versions of something
+
+                DIDAVersion newVersion = new DIDAVersion
+                {
+                    replicaId = this._replicaId
+                };
                 if (currentValues.Count != 0)
                 {
                     int oldestIndex = FindIndexOfOldestVersion(currentValues);
                     //Increment the version
-                    newVersion.versionNumber = FindMostRecentVersionNumber(currentValues) + 1;
+                    var mostRecentVersion = FindMostRecentVersion(currentValues);
+
+
+                    newVersion.replicaId = mostRecentVersion.replicaId;
+
+                    valueToWrite.valueTS = FindMostRecentValue(id).valueTS;
+
+                    //Merge it with incoming replicaTS
+                    valueToWrite.valueTS.merge(replicaTSToMerge);
+                    
+                    newVersion.replicaTS = mostRecentVersion.replicaTS;
+                    newVersion.versionNumber = mostRecentVersion.versionNumber + 1;
 
                     valueToWrite.version = newVersion;
 
@@ -102,8 +124,12 @@ namespace DIDAStorage
                     valueToWrite.version = new DIDAVersion
                     {
                         replicaId = this._replicaId,
-                        versionNumber = 0
+                        versionNumber = 0,
+                        replicaTS = new GossipLib.LamportClock(this._storageCounter + 1),
                     };
+                    valueToWrite.valueTS = new GossipLib.LamportClock(this._storageCounter + 1);
+                    valueToWrite.version.replicaTS.incrementAt(this._replicaId - 1);
+                    valueToWrite.valueTS.incrementAt(this._replicaId - 1);
                     lock(this){
                         this._numberOfWrites++;
                     }
@@ -117,6 +143,10 @@ namespace DIDAStorage
                 Console.WriteLine(valueToWrite);
             }
             return valueToWrite.version;
+            }catch (Exception e){
+                Console.WriteLine(e.ToString());
+                return new DIDAVersion();
+            }
         }
 
         public DIDAVersion UpdateIfValueIs(string id, string oldvalue, string newvalue)
@@ -128,7 +158,7 @@ namespace DIDAStorage
 
                 if (valueToChange.val == oldvalue)
                 {
-                    return this.Write(id, newvalue);
+                    return this.Write(id, newvalue, new GossipLib.LamportClock(this._storageCounter));
                 }
 
                 //TODO: Return error?
@@ -141,7 +171,7 @@ namespace DIDAStorage
 
         }
 
-        private int FindMostRecentVersionNumber(List<DIDAValue> values)
+        private DIDAVersion FindMostRecentVersion(List<DIDAValue> values)
         {
             DIDAVersion newestVersion = values[0].version;
 
@@ -152,7 +182,7 @@ namespace DIDAStorage
                     newestVersion = v.version;
                 }
             }
-            return newestVersion.versionNumber;
+            return newestVersion;
         }
 
         private DIDAValue FindMostRecentValue(string id)
@@ -246,6 +276,27 @@ namespace DIDAStorage
             }
         }
 
+        public GossipLib.LamportClock getReplicaTimestamp(string id){
+            if(!this._values.ContainsKey(id)){
+                    var clock = new GossipLib.LamportClock(this._storageCounter);
+                    clock.incrementAt(this._replicaId - 1);
+                    return clock;
+            }
+            else{
+                lock(this._values[id]){
+                    var mostRecentVersion = FindMostRecentVersion(this._values[id]);
+                    return mostRecentVersion.replicaTS;
+                }
+            }
+        }
+
+        public void incrementReplicaTSOnRecord(string id){
+            lock(this._values[id]){
+                this.FindMostRecentValue(id).version.replicaTS.incrementAt(this._replicaId - 1);
+            }
+        }
+
+
         public void printStatus(){
             Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
             Console.WriteLine("Storage Node Status:");
@@ -279,6 +330,13 @@ namespace DIDAStorage
         public bool toggleDebug(){
             this._debug = !this._debug;
             return this._debug;
+        }
+
+        public bool hasRecord(string id){
+            return this._values.ContainsKey(id);
+        }
+        public void incrementStorages(){
+            this._storageCounter++;
         }
     }
 }

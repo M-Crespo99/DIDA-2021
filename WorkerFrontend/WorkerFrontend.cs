@@ -48,17 +48,17 @@ namespace WorkerFrontend
 
         public async Task<DebugReply> Debug(DebugRequest request)
         {
-            return this._client.debug(request);
+            return await this._client.debugAsync(request);
         }
 
         public async Task<ListServerReply> ListServer()
         {
-            return this._client.listServer(new ListServerRequest());
+            return await this._client.listServerAsync(new ListServerRequest());
         }
 
         public async Task<StatusReply> Status()
         {
-            return this._client.status(new StatusRequest());
+            return await this._client.statusAsync(new StatusRequest());
         }
 
         public string getLastErrorMessage(){
