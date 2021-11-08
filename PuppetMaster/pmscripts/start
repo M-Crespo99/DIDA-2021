@@ -1,4 +1,7 @@
 scheduler sc1 localhost:2000
 storage 1 localhost:5001 0
+storage 3 localhost:5002 0
 worker w1 localhost:4001 0
 worker w2 localhost:4002 0
+wait 2000
+client Miguel app3

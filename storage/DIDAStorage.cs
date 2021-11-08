@@ -277,13 +277,16 @@ namespace DIDAStorage
         }
 
         public GossipLib.LamportClock getReplicaTimestamp(string id){
+            //If the record doesnt exist on this replica, we return [0 0 1] (if replica 3)
             if(!this._values.ContainsKey(id)){
-                    var clock = new GossipLib.LamportClock(this._storageCounter);
+                    Console.WriteLine("STORAGE COUNTER: " + this._storageCounter);
+                    var clock = new GossipLib.LamportClock(this._storageCounter + 1);
                     clock.incrementAt(this._replicaId - 1);
                     return clock;
             }
             else{
                 lock(this._values[id]){
+                    //Return the lamport clock on the key
                     var mostRecentVersion = FindMostRecentVersion(this._values[id]);
                     return mostRecentVersion.replicaTS;
                 }
