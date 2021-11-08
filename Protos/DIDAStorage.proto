@@ -11,7 +11,18 @@ service DIDAStorageService {
   rpc crashServer(DIDACrashServerRequest) returns (DIDACrashServerReply);
   rpc status(StatusRequest) returns (StatusReply);
   rpc toggleDebug(ToggleDebugRequest) returns (ToggleDebugReply);
+  rpc addStorage(AddStorageRequest) returns (AddStorageReply);
 }
+
+message AddStorageRequest {
+	string host = 1;
+	int32 port = 2;
+	string id = 3;
+}
+message AddStorageReply {
+	bool ok = 1;
+}
+
 
 message ToggleDebugRequest {
 
@@ -72,4 +83,8 @@ message DIDAUpdateIfRequest {
 	string id = 1;
 	string oldvalue = 2;
 	string newvalue = 3;
+}
+
+message LamportClock{
+	repeated int32 values = 1;
 }

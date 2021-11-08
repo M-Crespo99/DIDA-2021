@@ -1,14 +1,39 @@
 using System.Threading.Tasks;
 using Grpc.Core;
 using System;
+using System.Collections.Concurrent;
 
 namespace storage{
+
+    struct StorageDetails{
+
+        public StorageDetails(String host, int port)
+        {
+            Host = host;
+            Port = port;
+        }
+        public string Host { get; set;}
+        public int Port { get; set;}
+    }
+    
     public class StorageServerService : DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceBase{
         
+
+        GossipLib.LamportClock _clock;
         DIDAStorage.Storage storage;
 
-        public StorageServerService(int replicaId){
+        ConcurrentDictionary<string, StorageDetails> _otherStorageNodes = new ConcurrentDictionary<string, StorageDetails>();
+
+        private int _gossipDelay;
+
+        private string _host;
+        private int _port;
+        public StorageServerService(int replicaId, string host, int port, int gossipDelay){
             storage = new DIDAStorage.Storage(replicaId, true);
+            this._gossipDelay = gossipDelay;
+
+            this._host = host;
+            this._port = port;
         }
 
 
@@ -43,6 +68,23 @@ namespace storage{
             return Task.FromResult(new DIDAStorage.Proto.StatusReply{ Ok = true});
         }
 
+        public override Task<DIDAStorage.Proto.AddStorageReply> addStorage(DIDAStorage.Proto.AddStorageRequest request, ServerCallContext context){
+            
+            if(!(this._otherStorageNodes.TryAdd(request.Id, new StorageDetails(request.Host, request.Port)))){
+                this._otherStorageNodes[request.Id] =  new StorageDetails(request.Host, request.Port);
+            }
+
+            Console.WriteLine("Storage {0}:{1}.", _host, _port);
+            
+            Console.WriteLine("Other Known Storages: ");
+
+            foreach(var entry in this._otherStorageNodes){
+                Console.WriteLine("\tStorage {0} at {1}:{2}", entry.Key, entry.Value.Host, entry.Value.Port);
+            }
+            Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
+
+            return Task.FromResult(new DIDAStorage.Proto.AddStorageReply{ Ok = true });
+        }
 
         private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
             try{

@@ -1,1 +1,4 @@
 Miguel,21
+Joao,22
+Teresa,23
+Diogo,24

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
+using System.Threading;
 using static PCSService;
 
 namespace PCS
@@ -100,7 +101,35 @@ namespace PCS
                 
                 
                 executeRunCommand("dotnet", argument);
+
+             
+
+                
+
+                //Make sure all the storages know of the new storage
+                foreach(var entry in _idHostStorage){
+                    var client = new Client(entry.Value);
+                    client.addStorage(request.Id, request.Url.Split(":")[0], Int32.Parse(request.Url.Split(":")[1]));
+                }
+
                 _idHostStorage.TryAdd(request.Id, request.Url);
+
+                //Make sure the new storage knows about all the other storages
+
+                Console.WriteLine("Waiting for storage to initialize...");
+                Thread.Sleep(750);
+                Console.WriteLine("Done.");
+                var ClientForNewStorage = new Client(request.Url);
+                foreach(var entry in _idHostStorage){
+                    string entryHost = entry.Value.Split(":")[0];
+                    int entryPort = Int32.Parse(entry.Value.Split(":")[1]);
+
+                    //Dont send you to yourself
+                    if((entryHost == request.Url.Split(":")[0]) && (entryPort == Int32.Parse(request.Url.Split(":")[1]))){
+                        continue;
+                    }
+                    ClientForNewStorage.addStorage(entry.Key, entryHost, entryPort);
+                }
 
                 return await Task.FromResult(new PCSRunStorageReply {Ok = true});
             }

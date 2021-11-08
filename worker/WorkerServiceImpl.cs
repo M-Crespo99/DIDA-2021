@@ -11,78 +11,12 @@ using DIDAWorker;
 using DIDAWorker.Proto;
 using System.Linq;
 using StorageFrontend;
+using System.Security.Cryptography;
+using System.Text;
 using DIDARequest = DIDAWorker.Proto.DIDARequest;
 
 namespace worker
 {
-
-    public class StorageProxy : IDIDAStorage{
-        StorageFrontend.StorageFrontend _frontend;
-
-        DIDAStorageNode _storageNode;
-        public StorageProxy(){
-            
-        }
-
-        private DIDAStorageNode locateFunction(string idToRead){
-            return new DIDAWorker.DIDAStorageNode{
-                host = "localhost",
-                serverId = "1",
-                port = 5001
-            };
-        }
-        public DIDAWorker.DIDAVersion  write(DIDAWriteRequest request){
-            this._storageNode = this.locateFunction("");
-
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
-
-            var reply = this._frontend.Write(request.Id, request.Val);
-
-            return new DIDAWorker.DIDAVersion{
-                VersionNumber = reply.VersionNumber,
-                ReplicaId = reply.ReplicaId
-            };
-        }
-
-        public DIDAWorker.DIDAVersion updateIfValueIs(DIDAUpdateIfRequest request){
-            this._storageNode = this.locateFunction("");
-
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
-
-            var reply = this._frontend.UpdateIfValueIs(request.Id, request.Oldvalue, request.Newvalue);
-            
-            if(reply != null){
-                return new DIDAWorker.DIDAVersion{
-                    VersionNumber = reply.VersionNumber,
-                    ReplicaId = reply.ReplicaId
-                };
-
-            }else{
-                return new DIDAWorker.DIDAVersion{
-                    VersionNumber = -1,
-                    ReplicaId = -1
-                }; 
-            }
-
-        }
-
-        public DIDARecordReply read(DIDAReadRequest request){
-            this._storageNode = this.locateFunction("");
-
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
-
-            var reply = this._frontend.Read(request.Id, request.Version.VersionNumber, request.Version.ReplicaId);
-
-            return new DIDAWorker.DIDARecordReply{
-                Id = reply.Id,
-                Version = new DIDAWorker.DIDAVersion{
-                    VersionNumber = reply.Version.VersionNumber,
-                    ReplicaId = reply.Version.ReplicaId
-                },
-                Val = reply.Val
-            };
-        }
-    }
     public class WorkerServiceImpl : DIDAWorkerService.DIDAWorkerServiceBase
     {
         private String workerId;
@@ -141,7 +75,7 @@ namespace worker
                             try{
                                 Console.WriteLine("Going to storage");
 
-                                StorageProxy proxy = new StorageProxy();
+                                StorageProxy proxy = new StorageProxy(this.storageReplicas);
                                 operatorFromReflection.ConfigureStorage(proxy);                            
                                 newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                                 stopwatch.Stop();
@@ -294,6 +228,108 @@ namespace worker
         {
             var operatorArray = operatorDictionary.Select(op => new DIDAWorkerListDetails{ OperatorName = op.Key, Executions = op.Value.Item1, TotalTime = op.Value.Item2}).ToArray();
             return Task.FromResult(new ListServerReply { Details = { operatorArray }});
+        }
+    }
+
+    public class StorageProxy : IDIDAStorage{
+        StorageFrontend.StorageFrontend _frontend;
+
+        int[] _lamportClock;
+
+        DIDAStorageNode _storageNode;
+
+        List<DIDAStorageNode> _storageNodes;
+        public StorageProxy(List<DIDAStorageNode> storageNodes){
+            this._storageNodes = storageNodes;
+            this._lamportClock = new int[this._storageNodes.Count];
+        }
+
+
+        private ulong getHash(string str){
+            MD5 md5Hasher = MD5.Create();
+            var hashed = md5Hasher.ComputeHash(Encoding.UTF8.GetBytes(str));
+            return BitConverter.ToUInt64(hashed, 0);
+        }
+        private DIDAStorageNode locateFunction(string idToRead){
+
+
+            var hash = this.getHash(idToRead);
+
+            var node = this.getStorageFromHash(hash);
+
+            Console.WriteLine("WORKER HASH NODE: ");
+            Console.WriteLine("Input: {0} -> {1}.", idToRead, hash);
+            Console.WriteLine("Node Found:\nID: {0}\n{1}:{2}", node.serverId, node.host, node.port);
+            Console.WriteLine("HASH OF NODE: ", node.GetHashCode());
+
+            return new DIDAWorker.DIDAStorageNode{
+                host = node.host,
+                serverId = node.serverId,
+                port = node.port
+            };
+        }
+
+        private DIDAStorageNode getStorageFromHash(ulong hash){
+            DIDAStorageNode closest = this._storageNodes.First();
+
+            foreach(DIDAStorageNode node in this._storageNodes){
+                ulong hashOfNode = this.getHash(String.Format("{0}:{1}", node.host, node.port));
+                if(hashOfNode > hash && hashOfNode < this.getHash(String.Format("{0}:{1}", closest.host, closest.port))){
+                    closest = node;
+                }
+            }
+            return closest;
+        }
+        public DIDAWorker.DIDAVersion write(DIDAWriteRequest request){
+            this._storageNode = this.locateFunction(request.Id);
+
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+
+            var reply = this._frontend.Write(request.Id, request.Val);
+
+            return new DIDAWorker.DIDAVersion{
+                VersionNumber = reply.VersionNumber,
+                ReplicaId = reply.ReplicaId
+            };
+        }
+
+        public DIDAWorker.DIDAVersion updateIfValueIs(DIDAUpdateIfRequest request){
+            this._storageNode = this.locateFunction(request.Id);
+
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+
+            var reply = this._frontend.UpdateIfValueIs(request.Id, request.Oldvalue, request.Newvalue);
+            
+            if(reply != null){
+                return new DIDAWorker.DIDAVersion{
+                    VersionNumber = reply.VersionNumber,
+                    ReplicaId = reply.ReplicaId
+                };
+
+            }else{
+                return new DIDAWorker.DIDAVersion{
+                    VersionNumber = -1,
+                    ReplicaId = -1
+                }; 
+            }
+
+        }
+
+        public DIDARecordReply read(DIDAReadRequest request){
+            this._storageNode = this.locateFunction(request.Id);
+
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+
+            var reply = this._frontend.Read(request.Id, request.Version.VersionNumber, request.Version.ReplicaId);
+
+            return new DIDAWorker.DIDARecordReply{
+                Id = reply.Id,
+                Version = new DIDAWorker.DIDAVersion{
+                    VersionNumber = reply.Version.VersionNumber,
+                    ReplicaId = reply.Version.ReplicaId
+                },
+                Val = reply.Val
+            };
         }
     }
 }
