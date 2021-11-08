@@ -36,7 +36,7 @@ namespace scheduler
             //Get the operators
             var operators = this.ReadApplicationFile(request.FilePath);
             //sort them
-
+            Console.WriteLine("1");
             if(operators == null){
                 return await Task.FromResult(new DIDARunApplicationReply{Ok = false});
             }
@@ -55,10 +55,16 @@ namespace scheduler
             newRequest.Input = request.Input;
             newRequest.Next = 0;
             newRequest.ChainSize = operators.Count;
+Console.WriteLine("2");
+            try{
+                this.ScheduleOperators(newRequest, operators);
+                this.AssignStorageDetails(newRequest);
+            }
+            catch (Exception e){
+                Console.WriteLine(e);
 
-            this.ScheduleOperators(newRequest, operators);
-            this.AssignStorageDetails(newRequest);
-
+            }
+Console.WriteLine("3");
 
             WorkerFrontend.Frontend workerFrontend = new WorkerFrontend.Frontend(newRequest.Chain.First().Host, newRequest.Chain.First().Port);
 
@@ -144,6 +150,7 @@ namespace scheduler
                 if (!concurrentDictionary.ContainsKey(info[0]))
                 {
                     concurrentDictionary.TryAdd(info[0], info[1]);
+                    _operatorsPerWorkerDict.TryAdd(info[0], 0);
                 }
             }
         }

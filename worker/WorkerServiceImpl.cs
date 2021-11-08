@@ -74,19 +74,21 @@ namespace worker
                             string newOutput = "";
                             try{
                                 Console.WriteLine("Going to storage");
-
+                                stopwatch.Start();
                                 StorageProxy proxy = new StorageProxy(this.storageReplicas);
                                 operatorFromReflection.ConfigureStorage(proxy);                            
                                 newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                                 stopwatch.Stop();
-                                operatorCounter++;
+
                             }catch(RpcException e){
                                 Console.WriteLine(e.Message);
                             }
                             catch(Exception e){
+                                Console.WriteLine("ERROR EXECUTING OPERATOR: ");
                                 Console.WriteLine(e.ToString());
                             }
 
+                            operatorCounter++;
                             StoreOperatorInformationInDict(className, stopwatch);
                             SendOperatorInfoToScheduler(request.Meta.SchedulerHost, request.Meta.SchedulerPort, className, stopwatch);
 
@@ -211,7 +213,7 @@ namespace worker
         }
 
         public override Task<StatusReply> status(StatusRequest request, ServerCallContext context)
-        {
+        {   
             Console.WriteLine("-----------------------");
             Console.WriteLine("Worker {0}", this.workerId);
             Console.WriteLine("Total Time Spent working: {0}", this._totalTime);
@@ -220,7 +222,7 @@ namespace worker
             {
                 Console.WriteLine("Operator {0} was executed {1} times with an average computation time of {2}", op.Key, op.Value.Item1, ((float) op.Value.Item2)/op.Value.Item1 );
             }
-            Console.WriteLine("-----------------------");
+            Console.WriteLine("-----------------------"); 
             return Task.FromResult<StatusReply>(new StatusReply{Ok = true});
         }
 
@@ -321,6 +323,15 @@ namespace worker
             this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
 
             var reply = this._frontend.Read(request.Id, request.Version.VersionNumber, request.Version.ReplicaId);
+            
+            if(reply == null){
+                return new DIDAWorker.DIDARecordReply{
+                    Version = new DIDAWorker.DIDAVersion{
+                        VersionNumber = -1,
+                        ReplicaId = -1
+                    }
+                };
+            }
 
             return new DIDAWorker.DIDARecordReply{
                 Id = reply.Id,
