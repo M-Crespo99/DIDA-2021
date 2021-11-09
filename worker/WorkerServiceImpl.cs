@@ -20,6 +20,7 @@ namespace worker
     public class WorkerServiceImpl : DIDAWorkerService.DIDAWorkerServiceBase
     {
         private String workerId;
+        private int gossipDelay;
         
         List<DIDAStorageNode> storageReplicas = new List<DIDAStorageNode>();
 
@@ -35,8 +36,9 @@ namespace worker
 
         private int _totalTime = 0;
 
-        public WorkerServiceImpl(String id){
+        public WorkerServiceImpl(String id, int gossipDelay){
             this.workerId = id;
+            this.gossipDelay = gossipDelay;
         }
 
         public async override Task<DIDAReply> workOnOperator(DIDAWorker.Proto.DIDARequest request, ServerCallContext context)
@@ -101,6 +103,7 @@ namespace worker
                             request.Next++;
                             if (request.Next < request.ChainSize)
                             {
+                                System.Threading.Thread.Sleep(gossipDelay);
                                 var nextWorkerAssignment = request.Chain[request.Next];
                                 GrpcChannel channel = GrpcChannel.ForAddress("http://" + nextWorkerAssignment.Host + ":" + nextWorkerAssignment.Port);
                                 var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);

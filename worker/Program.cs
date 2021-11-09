@@ -17,10 +17,11 @@ namespace worker
             {
                 var port = int.Parse(args[0]);
                 var workerId = args[1];
+                var gossipDelay = int.Parse(args[2]);
                 var reflectionServiceImpl = new ReflectionServiceImpl(DIDAWorkerService.Descriptor, ServerReflection.Descriptor);
                 server = new Server
                 {
-                    Services = { DIDAWorkerService.BindService(new WorkerServiceImpl(workerId)), ServerReflection.BindService(reflectionServiceImpl) },
+                    Services = { DIDAWorkerService.BindService(new WorkerServiceImpl(workerId, gossipDelay)), ServerReflection.BindService(reflectionServiceImpl) },
                     Ports = {new ServerPort("localhost", port, Insecure)}
                 };
                 server.Start();
