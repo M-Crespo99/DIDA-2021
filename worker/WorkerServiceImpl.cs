@@ -217,8 +217,21 @@ namespace worker
 
         public override Task<StatusReply> status(StatusRequest request, ServerCallContext context)
         {   
+            printStatusOnConsole();
+            return Task.FromResult<StatusReply>(new StatusReply{Ok = true});
+        }
+
+        public override Task<ListServerReply> listServer(ListServerRequest request, ServerCallContext context)
+        {
+            printStatusOnConsole();
+            var operatorArray = operatorDictionary.Select(op => new DIDAWorkerListDetails{ OperatorName = op.Key, Executions = op.Value.Item1, TotalTime = op.Value.Item2}).ToArray();
+            return Task.FromResult(new ListServerReply { Details = { operatorArray }});
+        }
+
+        private void printStatusOnConsole()
+        {
             Console.WriteLine("-----------------------");
-            Console.WriteLine("Worker {0}", this.workerId);
+            Console.WriteLine("Worker {0} STATUS", this.workerId);
             Console.WriteLine("Total Time Spent working: {0}", this._totalTime);
             Console.WriteLine("Number of operators executed: " + operatorCounter);
             foreach (var op in operatorDictionary)
@@ -226,13 +239,6 @@ namespace worker
                 Console.WriteLine("Operator {0} was executed {1} times with an average computation time of {2}", op.Key, op.Value.Item1, ((float) op.Value.Item2)/op.Value.Item1 );
             }
             Console.WriteLine("-----------------------"); 
-            return Task.FromResult<StatusReply>(new StatusReply{Ok = true});
-        }
-
-        public override Task<ListServerReply> listServer(ListServerRequest request, ServerCallContext context)
-        {
-            var operatorArray = operatorDictionary.Select(op => new DIDAWorkerListDetails{ OperatorName = op.Key, Executions = op.Value.Item1, TotalTime = op.Value.Item2}).ToArray();
-            return Task.FromResult(new ListServerReply { Details = { operatorArray }});
         }
     }
 

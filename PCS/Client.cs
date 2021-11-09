@@ -15,6 +15,7 @@ namespace PCS
 
         public Client(string target)
         {
+            target = target.Replace("http://", "").Replace("https://", "");
             _channel = new Channel(target, ChannelCredentials.Insecure);
         }
 
