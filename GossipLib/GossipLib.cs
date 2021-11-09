@@ -61,7 +61,7 @@ namespace GossipLib
         }
 
     }
-    public class LamportClock
+    public class LamportClock : IComparable<LamportClock>
     {
         private int _numberOfReplicas {get;}
         private int[] _clock {get;}
@@ -110,6 +110,14 @@ namespace GossipLib
             }
         }
 
+        public int CompareTo(LamportClock that){
+            if(this < that){
+                return 0;
+            }else if(this > that){
+                return 1;
+            }
+            return 1;
+        }
         public int assign(int position, int newValue){
             if(position > this._numberOfReplicas || position < 0){
                 return -1; 
@@ -166,6 +174,23 @@ namespace GossipLib
         public static bool operator <=(LamportClock l1, LamportClock l2) {
             for(int i = 0; i < l1._numberOfReplicas; i++){
                 if((l2.At(i) != -1) && (l1.At(i) > l2.At(i))){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static bool operator <(LamportClock l1, LamportClock l2) {
+            for(int i = 0; i < l1._numberOfReplicas; i++){
+                if((l2.At(i) != -1) && (l1.At(i) > l2.At(i))){
+                    return false;
+                }
+            }
+            return true;
+        }
+        public static bool operator >(LamportClock l1, LamportClock l2) {
+            for(int i = 0; i < l1._numberOfReplicas; i++){
+                if((l2.At(i) != -1) && (l1.At(i) < l2.At(i))){
                     return false;
                 }
             }

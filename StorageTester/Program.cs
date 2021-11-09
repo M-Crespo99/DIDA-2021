@@ -52,6 +52,9 @@ namespace StorageTester
                     var reply = frontend.toogleDebug();
                     Console.WriteLine(reply.Result.DebugStatus);
                 }
+                else if(parts[0] == "set" && parts.Length == 2){
+                    frontend = new StorageFrontend.StorageFrontend("localhost", Int32.Parse(args[0]), Int32.Parse(parts[1]), true);
+                }
                 else if(parts[0] == "populate" && parts.Length == 2){
                     var file = parts[1];
 

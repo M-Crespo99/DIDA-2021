@@ -246,10 +246,18 @@ namespace worker
         }
 
 
+
+        //Knuth hash.
         private ulong getHash(string str){
-            MD5 md5Hasher = MD5.Create();
-            var hashed = md5Hasher.ComputeHash(Encoding.UTF8.GetBytes(str));
-            return BitConverter.ToUInt64(hashed, 0);
+        {
+            UInt64 hashedValue = 3074457345618258791ul;
+            for(int i=0; i<str.Length; i++)
+            {
+                hashedValue += str[i];
+                hashedValue *= 3074457345618258799ul;
+            }
+            return hashedValue;
+}
         }
         private DIDAStorageNode locateFunction(string idToRead){
 
@@ -268,8 +276,13 @@ namespace worker
         private DIDAStorageNode getStorageFromHash(ulong hash){
             DIDAStorageNode closest = this._storageNodes.First();
 
+            Console.WriteLine("Targe Hash: " + hash);
+
             foreach(DIDAStorageNode node in this._storageNodes){
                 ulong hashOfNode = this.getHash(String.Format("{0}:{1}", node.host, node.port));
+
+                Console.WriteLine(String.Format("{0}:{1} -> {2}", node.host, node.port, hashOfNode));
+
                 if(hashOfNode > hash && hashOfNode < this.getHash(String.Format("{0}:{1}", closest.host, closest.port))){
                     closest = node;
                 }
