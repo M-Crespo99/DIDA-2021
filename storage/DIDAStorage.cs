@@ -97,6 +97,7 @@ namespace DIDAStorage
                         int oldestIndex = FindIndexOfOldestVersion(currentValues);
                         //Increment the version
                         var mostRecentVersion = FindMostRecentVersion(currentValues);
+                        
 
 
                         newVersion.replicaId = record._replicaId;
@@ -107,7 +108,7 @@ namespace DIDAStorage
                         valueToWrite.valueTS.merge(record._updateTS);
 
                         newVersion.replicaTS = mostRecentVersion.replicaTS;
-                        newVersion.versionNumber = mostRecentVersion.versionNumber + 1;
+                        newVersion.versionNumber = record._operation.versionNumber;
 
                         valueToWrite.version = newVersion;
 
@@ -426,6 +427,15 @@ namespace DIDAStorage
             {
                 this._storageCounter++;
             }
+        }
+
+        public int getNextVersionNumber(string id){
+            if(this._values.ContainsKey(id)){
+                lock(this._values[id]){
+                    return FindMostRecentValue(id).version.versionNumber + 1;
+                }
+            }
+            return 0;
         }
     }
 }

@@ -89,6 +89,7 @@ namespace storage{
 
             this.mergeLogs(request);
 
+            Console.WriteLine("LOG AT {0}:{1}", this._host, this._port);
             foreach(var entry in this.replicaLog){
                 Console.WriteLine("LOG: " + entry.ToString());
             }
@@ -177,6 +178,7 @@ namespace storage{
             var newEntry = this.addToLog(request);
 
             try{
+                Console.WriteLine("LOG AT {0}:{1}", this._host, this._port);
                 foreach(var entry in this.replicaLog){
                 Console.WriteLine("LOG: " + entry.ToString());
             }
@@ -268,7 +270,7 @@ namespace storage{
             var op = new GossipLib.operation{
                 key = request.Id,
                 opType = GossipLib.operationType.WRITE,
-                versionNumber = -1,
+                versionNumber = this.storage.getNextVersionNumber(request.Id),
                 newValue = request.Val
             };
 
@@ -475,6 +477,7 @@ namespace storage{
                 UpdateIdentifier = entry._operationIdentifier,
                 Operation = new DIDAStorage.Proto.GossipOperation{
                     Key = entry._operation.key,
+                    VersionNumber = entry._operation.versionNumber,
                     NewValue = entry._operation.newValue
                 },
 
