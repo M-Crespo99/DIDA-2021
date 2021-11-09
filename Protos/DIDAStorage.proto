@@ -112,6 +112,7 @@ message GossipLogEntry{
 message GossipOperation{
 	string key = 1;
 	string newValue = 2;
+	int32 versionNumber = 3;
 }
 
 message LamportClock{

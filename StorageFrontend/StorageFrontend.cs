@@ -293,6 +293,7 @@ namespace StorageFrontend
                 UpdateIdentifier = entry._operationIdentifier,
                 Operation = new DIDAStorage.Proto.GossipOperation{
                     Key = entry._operation.key,
+                    VersionNumber = entry._operation.versionNumber,
                     NewValue = entry._operation.newValue
                 },
 

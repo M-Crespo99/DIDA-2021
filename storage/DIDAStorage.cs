@@ -45,8 +45,6 @@ namespace DIDAStorage
                     {
                         this._numberOfReads++;
                     }
-                    Console.WriteLine("Version: ");
-                    Console.WriteLine(dValue.version.ToString());
 
                     return new DIDARecord { id = id, version = dValue.version, val = dValue.value, valueTS = dValue.valueTS };
                 }
@@ -87,7 +85,6 @@ namespace DIDAStorage
 
                 lock (this._values[id])
                 {
-                    Console.WriteLine("1");
                     List<DIDAValue> currentValues = this._values[id];
                     //If There are already versions of something
 
@@ -97,21 +94,16 @@ namespace DIDAStorage
                     };
                     if (currentValues.Count != 0)
                     {
-                        Console.WriteLine("2");
                         int oldestIndex = FindIndexOfOldestVersion(currentValues);
                         //Increment the version
                         var mostRecentVersion = FindMostRecentVersion(currentValues);
 
 
-                        newVersion.replicaId = mostRecentVersion.replicaId;
+                        newVersion.replicaId = record._replicaId;
 
                         valueToWrite.valueTS = FindMostRecentValue(id).valueTS;
 
                         //Merge it with incoming replicaTS
-                        Console.WriteLine("record._updateTS: " + record._updateTS.ToString());
-                        Console.WriteLine("record._updateTS: " + valueToWrite.valueTS.ToString());
-
-
                         valueToWrite.valueTS.merge(record._updateTS);
 
                         newVersion.replicaTS = mostRecentVersion.replicaTS;
@@ -122,12 +114,10 @@ namespace DIDAStorage
                         //Write on top of the oldest if we already at MAX VERSIONS
                         if (currentValues.Count == MAX_VERSIONS)
                         {
-                            Console.WriteLine("3");
                             currentValues[oldestIndex] = valueToWrite;
                         }
                         else
                         {
-                            Console.WriteLine("4");
                             //Simply add to the existing versions
                             currentValues.Add(valueToWrite);
                         }
@@ -138,7 +128,7 @@ namespace DIDAStorage
                             valueToWrite.version = new DIDAVersion
                                 {
                                     replicaId = record._replicaId,
-                                    versionNumber = 1,
+                                    versionNumber = record._operation.versionNumber,
                                     replicaTS = record._updateTS,
                                 };
                         valueToWrite.valueTS = record._updateTS;
@@ -315,7 +305,6 @@ namespace DIDAStorage
             //If the record doesnt exist on this replica, we return [0 0 1] (if replica 3)
             if (!this._values.ContainsKey(id))
             {
-                Console.WriteLine("STORAGE COUNTER: " + this._storageCounter);
                 var clock = new GossipLib.LamportClock(this._storageCounter + 1);
                 clock.incrementAt(this._replicaId - 1);
                 return clock;

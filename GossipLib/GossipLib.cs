@@ -14,9 +14,11 @@ namespace GossipLib
 
         public string  newValue;
 
+        public int versionNumber;
+
         public override string ToString()
         {
-            return String.Format("K: {0} V: {1}", key, newValue);
+            return String.Format("< K: {0} V: {1} VN: {2} >", key, newValue,versionNumber);
         }
 
     }

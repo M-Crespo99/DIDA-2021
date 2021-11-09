@@ -77,6 +77,7 @@ namespace storage{
             this.storage.printStatus();
             return Task.FromResult(new DIDAStorage.Proto.StatusReply{ Ok = true});
         }
+
         public override Task<DIDAStorage.Proto.GossipReply> gossip(DIDAStorage.Proto.GossipMessage request, ServerCallContext context){
             //Merge the logs
             //Merge incoming replica
@@ -86,9 +87,6 @@ namespace storage{
             //Keep gossiping
 
 
-            Console.WriteLine("GOT A GOSSIP MESSAGE: ");
-            Console.WriteLine(request.ToString());
-
             this.mergeLogs(request);
 
             foreach(var entry in this.replicaLog){
@@ -96,24 +94,18 @@ namespace storage{
             }
 
             try{
-
-            
-            var keysInLog = this.getKeysInReplicaLog();
-            foreach(var key in keysInLog){
-                var records = this.filterLogByKey(key);
-                var orderedRecords = records.OrderBy(record => record._prev);
-                
-                foreach(var record in orderedRecords){
-                    if(isStable(record) && !this.executedUpdates.Contains(record._operationIdentifier)){
-                        Console.WriteLine("UPDATE STABLE");
-                        this.storage.Write(record._operation.key, record._operation.newValue, record, true);
-                        this.executedUpdates.Add(record._operationIdentifier);
-                    }
-                    else{
-                        Console.WriteLine("UPDATE IS NOT STABLE");
+                var keysInLog = this.getKeysInReplicaLog();
+                foreach(var key in keysInLog){
+                    var records = this.filterLogByKey(key);
+                    var orderedRecords = records.OrderBy(record => record._prev);
+                    
+                    foreach(var record in orderedRecords){
+                        if(isStable(record) && !this.executedUpdates.Contains(record._operationIdentifier)){
+                            this.storage.Write(record._operation.key, record._operation.newValue, record, true);
+                            this.executedUpdates.Add(record._operationIdentifier);
+                        }
                     }
                 }
-            }
             }catch (Exception e){
                 Console.WriteLine(e.ToString());
             }
@@ -133,23 +125,11 @@ namespace storage{
                 this._otherStorageNodes[request.Id] =  new StorageDetails(request.Host, request.Port);
             }
 
-            Console.WriteLine("Storage {0}:{1}.", _host, _port);
-            
-            Console.WriteLine("Other Known Storages: ");
-
-            foreach(var entry in this._otherStorageNodes){
-                Console.WriteLine("\tStorage {0} at {1}:{2}", entry.Key, entry.Value.Host, entry.Value.Port);
-            }
-            Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
-
-            
-
             return Task.FromResult(new DIDAStorage.Proto.AddStorageReply{ Ok = true });
         }
 
         private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
             try{
-                Console.WriteLine("READ -> " + request.Clock.ToString());
                 DIDAStorage.DIDAVersion version = new DIDAStorage.DIDAVersion();
 
                 //If version comes as null, we go for the most recent version. DIDAVersion is non nullable so putting -1 was the soltuion
@@ -192,7 +172,6 @@ namespace storage{
             //         valueTS = merge(valueTS and updateTS)
             //         Append to executed updates
 
-            Console.WriteLine("WRITE -> " + request.Clock.ToString());
 
             
             var newEntry = this.addToLog(request);
@@ -289,6 +268,7 @@ namespace storage{
             var op = new GossipLib.operation{
                 key = request.Id,
                 opType = GossipLib.operationType.WRITE,
+                versionNumber = -1,
                 newValue = request.Val
             };
 
@@ -351,6 +331,7 @@ namespace storage{
                 UpdateIdentifier = entry._operationIdentifier,
                 Operation = new DIDAStorage.Proto.GossipOperation{
                     Key = entry._operation.key,
+                    VersionNumber = entry._operation.versionNumber,
                     NewValue = entry._operation.newValue
                 },
 
@@ -368,6 +349,7 @@ namespace storage{
                 entry.UpdateIdentifier,
                 new GossipLib.operation{
                     key = entry.Operation.Key,
+                    versionNumber = entry.Operation.VersionNumber,
                     newValue = entry.Operation.NewValue
                 }
                 
