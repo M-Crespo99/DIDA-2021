@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace storage{
 
@@ -22,16 +23,24 @@ namespace storage{
 
         ConcurrentDictionary<string, StorageDetails> _otherStorageNodes = new ConcurrentDictionary<string, StorageDetails>();
 
+
+        List<StorageFrontend.GossipLogRecord> replicaLog = new List<StorageFrontend.GossipLogRecord>();
+
+        List<int> executedUpdates = new List<int>();
+
         private int _gossipDelay;
 
         private string _host;
         private int _port;
+
+        private int _replicaId;
         public StorageServerService(int replicaId, string host, int port, int gossipDelay){
             storage = new DIDAStorage.Storage(replicaId, true);
             this._gossipDelay = gossipDelay;
 
             this._host = host;
             this._port = port;
+            this._replicaId = replicaId;
         }
 
 
@@ -66,7 +75,6 @@ namespace storage{
             return Task.FromResult(new DIDAStorage.Proto.StatusReply{ Ok = true});
         }
         public override Task<DIDAStorage.Proto.GossipReply> gossip(DIDAStorage.Proto.GossipMessage request, ServerCallContext context){
-            
             //Merge the logs
             //Merge incoming replica
             //Apply any updates that have become stable and havent been executed
@@ -151,12 +159,31 @@ namespace storage{
             Console.WriteLine("WRITE -> " + request.Clock.ToString());
 
             
+            var newEntry = this.addToLog(request);
+
             try{
-                var replicaTimeStamp = this.storage.getReplicaTimestamp(request.Id);
-                if(this.storage.hasRecord(request.Id)){
-                    this.storage.incrementReplicaTSOnRecord(request.Id);
+                foreach(var entry in this.replicaLog){
+                Console.WriteLine("LOG: " + entry.ToString());
+            }
+            } catch (Exception e){
+                Console.WriteLine(e.ToString());
+            }
+            
+
+            DIDAStorage.DIDAVersion version;
+            try{
+                if(this.isStable(newEntry)){
+                     version = storage.Write(request.Id, request.Val, newEntry._updateTS);
+                     this.executedUpdates.Add(request.UniqueID);
+
+                     this.sendGossipMessages();
+                }else{
+                    version = new DIDAStorage.DIDAVersion{
+                        versionNumber = -1,
+                        replicaId = this._replicaId,
+                        replicaTS = newEntry._replicaTS
+                    };
                 }
-                DIDAStorage.DIDAVersion version = storage.Write(request.Id, request.Val, replicaTimeStamp);
             return new DIDAStorage.Proto.DIDAVersion {
                 VersionNumber = version.versionNumber,
                 ReplicaId = version.replicaId,
@@ -185,7 +212,7 @@ namespace storage{
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
         }
-        private DIDAStorage.Proto.LamportClock LClockToProto(GossipLib.LamportClock c){
+        private DIDAStorage.Proto.LamportClock LClockToProto(StorageFrontend.LamportClock c){
             DIDAStorage.Proto.LamportClock protoLClock = new DIDAStorage.Proto.LamportClock();
 
             var l = c.toList();
@@ -195,6 +222,72 @@ namespace storage{
             }
 
             return protoLClock;
+        }
+
+        private StorageFrontend.LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock){
+            List<int> l = new List<int>();
+
+            foreach(var value in protoClock.Values){
+                l.Add(value);
+            }
+
+            return new StorageFrontend.LamportClock(l);
+        }
+
+        private StorageFrontend.GossipLogRecord addToLog(DIDAStorage.Proto.DIDAWriteRequest request){
+            try{
+
+            
+            int replicaId = this._replicaId;
+            
+            //increment ReplicaTS at replicaID by one
+            this.storage.incrementReplicaTSOnRecord(request.Id);
+
+            var prev = this.protoToLClock(request.Clock);
+            
+            var ts = prev;
+
+            ts.incrementAt(this._replicaId - 1);
+
+            var updateId = request.UniqueID;
+
+            var op = new StorageFrontend.operation{
+                key = request.Id,
+                opType = StorageFrontend.operationType.WRITE,
+                newValue = request.Val
+            };
+
+            var replicaTS = this.storage.getReplicaTimestamp(request.Id).DeepCopy();
+
+
+            var newEntry = new StorageFrontend.GossipLogRecord(replicaId,
+                                                        ts,
+                                                        this.protoToLClock(request.Clock),
+                                                        replicaTS,
+                                                        updateId,
+                                                        op);
+
+            this.replicaLog.Add(newEntry);
+
+            return newEntry;
+                        
+            }     
+            catch (Exception e){
+                Console.WriteLine(e.ToString());
+            }
+            return null;
+        }
+
+
+        private bool isStable(StorageFrontend.GossipLogRecord record){
+            return record._prev <= this.storage.getValueTS(record._operation.key);
+        }
+
+
+        private void sendGossipMessages(){
+            foreach(var entry in this.replicaLog){
+                
+            }
         }
     }
 }

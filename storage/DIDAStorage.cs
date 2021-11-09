@@ -66,10 +66,10 @@ namespace DIDAStorage
         }
 
 
-        public GossipLib.LamportClock processNewGossipMessage(){
+        public StorageFrontend.LamportClock processNewGossipMessage(){
             return null;
         }
-        public DIDAVersion Write(string id, string val, GossipLib.LamportClock replicaTSToMerge)
+        public DIDAVersion Write(string id, string val, StorageFrontend.LamportClock replicaTSToMerge)
         {
             try{
             DIDAValue valueToWrite = new DIDAValue();
@@ -125,9 +125,9 @@ namespace DIDAStorage
                     {
                         replicaId = this._replicaId,
                         versionNumber = 0,
-                        replicaTS = new GossipLib.LamportClock(this._storageCounter + 1),
+                        replicaTS = new StorageFrontend.LamportClock(this._storageCounter + 1),
                     };
-                    valueToWrite.valueTS = new GossipLib.LamportClock(this._storageCounter + 1);
+                    valueToWrite.valueTS = new StorageFrontend.LamportClock(this._storageCounter + 1);
                     valueToWrite.version.replicaTS.incrementAt(this._replicaId - 1);
                     valueToWrite.valueTS.incrementAt(this._replicaId - 1);
                     lock(this){
@@ -158,7 +158,7 @@ namespace DIDAStorage
 
                 if (valueToChange.val == oldvalue)
                 {
-                    return this.Write(id, newvalue, new GossipLib.LamportClock(this._storageCounter));
+                    return this.Write(id, newvalue, new StorageFrontend.LamportClock(this._storageCounter));
                 }
 
                 //TODO: Return error?
@@ -276,11 +276,11 @@ namespace DIDAStorage
             }
         }
 
-        public GossipLib.LamportClock getReplicaTimestamp(string id){
+        public StorageFrontend.LamportClock getReplicaTimestamp(string id){
             //If the record doesnt exist on this replica, we return [0 0 1] (if replica 3)
             if(!this._values.ContainsKey(id)){
                     Console.WriteLine("STORAGE COUNTER: " + this._storageCounter);
-                    var clock = new GossipLib.LamportClock(this._storageCounter + 1);
+                    var clock = new StorageFrontend.LamportClock(this._storageCounter + 1);
                     clock.incrementAt(this._replicaId - 1);
                     return clock;
             }
@@ -294,11 +294,37 @@ namespace DIDAStorage
         }
 
         public void incrementReplicaTSOnRecord(string id){
+
+            if(!this._values.ContainsKey(id)){
+
+                this._values.Add(id, new List<DIDAValue>());
+
+                lock(this._values[id]){
+                    DIDAVersion newVersion = new DIDAVersion{
+                        versionNumber = -1,
+                        replicaId = this._replicaId,
+                        replicaTS = new StorageFrontend.LamportClock(this._storageCounter + 1)
+                    };
+
+                    this._values[id].Add(new DIDAValue{
+                        value = "",
+                        valueTS = newVersion.replicaTS,
+                        version = newVersion
+                    });
+                    this._values[id].First().version.replicaTS.incrementAt(this._replicaId - 1);
+                }
+                return;
+            }
             lock(this._values[id]){
                 this.FindMostRecentValue(id).version.replicaTS.incrementAt(this._replicaId - 1);
             }
         }
 
+        public StorageFrontend.LamportClock getValueTS(string id){
+            lock(this._values[id]){
+                return this.FindMostRecentValue(id).valueTS;
+            }
+        }
 
         public void printStatus(){
             Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");

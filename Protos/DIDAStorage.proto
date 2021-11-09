@@ -90,6 +90,7 @@ message DIDAWriteRequest {
 	string id = 1;
 	string val = 2;
 	LamportClock clock = 3;
+	int32 uniqueID = 4;
 }
 
 message DIDAUpdateIfRequest {
@@ -100,13 +101,17 @@ message DIDAUpdateIfRequest {
 
 message GossipLogEntry{
 	int32 replicaID = 1;
-	LamportClock updateClock = 2;
-	string operationType = 3;
+	LamportClock updateTS = 2;
 	LamportClock previousClock = 4;
 	int32 updateIdentifier = 5;
+	GossipOperation operation = 6;
 
-	string key = 6;
-	string value = 7;
+	LamportClock replicaTS = 7;
+}
+
+message GossipOperation{
+	string key = 1;
+	string newValue = 2;
 }
 
 message LamportClock{

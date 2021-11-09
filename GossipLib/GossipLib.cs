@@ -1,24 +1,37 @@
 ﻿using System.Collections.Generic;
 using System;
+
 namespace GossipLib
 {
-    public enum operatioType{
+    public enum operationType{
         READ = 1,
         WRITE = 2,
         UPDATE_IF_VALUE_IS = 3,
     }
+    public struct operation{
+        public string key;
+        public operationType opType;
+
+        public string  newValue;
+
+        public override string ToString()
+        {
+            return String.Format("K: {0} V: {1}", key, newValue);
+        }
+
+    }
     public class GossipLogRecord{
-        private int _replicaId;
+        public int _replicaId;
 
-        private LamportClock _updateTS;
+        public LamportClock _updateTS;
 
-        private LamportClock _prev;
+        public LamportClock _prev;
 
-        private LamportClock _replicaTS;
+        public LamportClock _replicaTS;
 
-        private int _operationIdentifier;
+        public int _operationIdentifier;
 
-        private operatioType _operationType;
+        public operation _operation;
 
 
         public GossipLogRecord(int replicaId,
@@ -26,15 +39,25 @@ namespace GossipLib
                                 LamportClock prev,
                                 LamportClock replicaTS,
                                 int operationIdentifier,
-                                operatioType opType){
+                                operation op){
             
 
             this._replicaId = replicaId;
             this._prev = prev;
             this._updateTS = updateTS;
             this._operationIdentifier = operationIdentifier;
-            this._operationType = opType;
+            this._operation = op;
             this._replicaTS = replicaTS;
+        }
+
+        public override string ToString()
+        {
+            return String.Format("LogRecord: <{0}, {1}, {2}, {3}, {4}> {5}\n", this._replicaId,
+                                                                                _updateTS.ToString(),
+                                                                                _operation,
+                                                                                _prev.ToString(),
+                                                                                _operationIdentifier,
+                                                                                _replicaTS.ToString());
         }
 
     }
@@ -57,6 +80,17 @@ namespace GossipLib
             for(int i = 0; i < this._numberOfReplicas; i++){
                 this._clock[i] = list[i];
             }
+        }
+
+        public LamportClock DeepCopy(){
+            var copy = new LamportClock(this._numberOfReplicas);
+
+
+            for(int i = 0; i < this._numberOfReplicas; i++){
+                copy.assign(i, this.At(i));
+            }
+
+            return copy;
         }
 
         public LamportClock(int[] clock){

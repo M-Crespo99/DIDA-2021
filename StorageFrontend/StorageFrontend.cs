@@ -9,7 +9,7 @@ namespace StorageFrontend
     public class StorageFrontend
     {
 
-        Dictionary<string, GossipLib.LamportClock> _clocks;
+        Dictionary<string, LamportClock> _clocks;
 
         private int _port;
 
@@ -36,7 +36,7 @@ namespace StorageFrontend
 
             this._client = new DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceClient(this._channel);
 
-            this._clocks = new Dictionary<string, GossipLib.LamportClock>();
+            this._clocks = new Dictionary<string, LamportClock>();
         }
 
         public StorageFrontend(string host, int port, int numberOfStorages, bool verbose)
@@ -53,7 +53,7 @@ namespace StorageFrontend
 
             this._client = new DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceClient(this._channel);
 
-            this._clocks = new Dictionary<string, GossipLib.LamportClock>();
+            this._clocks = new Dictionary<string, LamportClock>();
         }
 
         public async Task<DIDAStorage.Proto.StatusReply> printStatus()
@@ -64,20 +64,23 @@ namespace StorageFrontend
         public DIDAStorage.Proto.DIDAVersion Write(string id, string value)
         {
 
-            GossipLib.LamportClock lClock;
+            LamportClock lClock;
 
             //Check if we have a value for that clock
             if(!this._clocks.ContainsKey(id)){
-                this._clocks[id] = new GossipLib.LamportClock(this._numberOfStorages);
+                this._clocks[id] = new LamportClock(this._numberOfStorages);
             }
             
             lClock = this._clocks[id];
+
+            var rand = new Random();
             
             DIDAStorage.Proto.DIDAWriteRequest writeRequest = new DIDAStorage.Proto.DIDAWriteRequest
             {
                 Id = id,
                 Val = value,
-                Clock = LClockToProto(lClock)
+                Clock = LClockToProto(lClock),
+                UniqueID = rand.Next()
             };
 
 
@@ -132,11 +135,11 @@ namespace StorageFrontend
         public DIDAStorage.Proto.DIDARecordReply Read(string id, DIDAStorage.Proto.DIDAVersion version)
         {
 
-            GossipLib.LamportClock lClock;
+            LamportClock lClock;
 
             //Check if we have a value for that clock
             if(!this._clocks.ContainsKey(id)){
-                this._clocks[id] = new GossipLib.LamportClock(this._numberOfStorages);
+                this._clocks[id] = new LamportClock(this._numberOfStorages);
             }
             
             lClock = this._clocks[id];
@@ -242,17 +245,34 @@ namespace StorageFrontend
             this._verbose = !this._verbose;
         }
 
-        private GossipLib.LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock){
+
+        public void gossip(List<GossipLogRecord> records){
+
+            var gossipMessage = new DIDAStorage.Proto.GossipMessage();
+
+            foreach(var record in records){
+                var newProtoEntry = GRecordToGProtoRecord(record);
+
+
+                gossipMessage.Log.Add(newProtoEntry);
+            }
+
+            this._client.gossipAsync(gossipMessage);
+
+            return;
+        }        
+
+        private LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock){
             List<int> l = new List<int>();
 
             foreach(var value in protoClock.Values){
                 l.Add(value);
             }
 
-            return new GossipLib.LamportClock(l);
+            return new LamportClock(l);
         }
 
-        private DIDAStorage.Proto.LamportClock LClockToProto(GossipLib.LamportClock c){
+        private DIDAStorage.Proto.LamportClock LClockToProto(LamportClock c){
             DIDAStorage.Proto.LamportClock protoLClock = new DIDAStorage.Proto.LamportClock();
 
             var l = c.toList();
@@ -262,6 +282,196 @@ namespace StorageFrontend
             }
 
             return protoLClock;
+        }
+
+        private DIDAStorage.Proto.GossipLogEntry GRecordToGProtoRecord(GossipLogRecord entry){
+            var protoEntry = new DIDAStorage.Proto.GossipLogEntry{
+                ReplicaID = entry._replicaId,
+                UpdateTS = LClockToProto(entry._updateTS),
+                PreviousClock = LClockToProto(entry._prev),
+                UpdateIdentifier = entry._operationIdentifier,
+                Operation = new DIDAStorage.Proto.GossipOperation{
+                    Key = entry._operation.key,
+                    NewValue = entry._operation.newValue
+                },
+
+                ReplicaTS = LClockToProto(entry._replicaTS)
+            };
+            return protoEntry;
+        }
+    }
+
+        public enum operationType{
+        READ = 1,
+        WRITE = 2,
+        UPDATE_IF_VALUE_IS = 3,
+    }
+    public struct operation{
+        public string key;
+        public operationType opType;
+
+        public string  newValue;
+
+        public override string ToString()
+        {
+            return String.Format("K: {0} V: {1}", key, newValue);
+        }
+
+    }
+    public class GossipLogRecord{
+        public int _replicaId;
+
+        public LamportClock _updateTS;
+
+        public LamportClock _prev;
+
+        public LamportClock _replicaTS;
+
+        public int _operationIdentifier;
+
+        public operation _operation;
+
+
+        public GossipLogRecord(int replicaId,
+                                LamportClock updateTS,
+                                LamportClock prev,
+                                LamportClock replicaTS,
+                                int operationIdentifier,
+                                operation op){
+            
+
+            this._replicaId = replicaId;
+            this._prev = prev;
+            this._updateTS = updateTS;
+            this._operationIdentifier = operationIdentifier;
+            this._operation = op;
+            this._replicaTS = replicaTS;
+        }
+
+        public override string ToString()
+        {
+            return String.Format("LogRecord: <{0}, {1}, {2}, {3}, {4}> {5}\n", this._replicaId,
+                                                                                _updateTS.ToString(),
+                                                                                _operation,
+                                                                                _prev.ToString(),
+                                                                                _operationIdentifier,
+                                                                                _replicaTS.ToString());
+        }
+
+    }
+    public class LamportClock
+    {
+        private int _numberOfReplicas {get;}
+        private int[] _clock {get;}
+
+        public LamportClock(int numberOfReplicas){
+            this._clock = new int[numberOfReplicas];
+            this._numberOfReplicas = numberOfReplicas;
+            for(int i = 0; i < numberOfReplicas; i++){
+                this._clock[i] = 0;
+            }
+        }
+
+        public LamportClock(List<int> list){
+            this._clock = new int[list.Count];
+            this._numberOfReplicas = list.Count;
+            for(int i = 0; i < this._numberOfReplicas; i++){
+                this._clock[i] = list[i];
+            }
+        }
+
+        public LamportClock DeepCopy(){
+            var copy = new LamportClock(this._numberOfReplicas);
+
+
+            for(int i = 0; i < this._numberOfReplicas; i++){
+                copy.assign(i, this.At(i));
+            }
+
+            return copy;
+        }
+
+        public LamportClock(int[] clock){
+            this._clock = clock;
+            this._numberOfReplicas = clock.Length;
+        }
+
+
+        public void merge(LamportClock otherClock){
+            for(int i = 0; i < this._numberOfReplicas; i++){
+                if(otherClock.At(i) > this._clock[i]){
+                    this._clock[i] = otherClock.At(i);
+                }
+                else if(otherClock.At(i) < this._clock[i]){
+                    otherClock.assign(i, this._clock[i]);
+                }
+            }
+        }
+
+        public int assign(int position, int newValue){
+            if(position > this._numberOfReplicas || position < 0){
+                return -1; 
+            }
+            this._clock[position] = newValue;
+            return newValue;
+        }
+
+
+        public int incrementAt(int position){
+            if(position > this._numberOfReplicas || position < 0){
+                return -1; 
+            }
+
+            this._clock[position] = this._clock[position] + 1;
+
+            return this._clock[position];
+        }
+
+        public override string ToString()
+        {
+            string str = "[ ";
+
+            foreach(int i in this._clock){
+                str += i.ToString() + " ";
+            }
+            return str + "]";
+        }
+
+        public int At(int i){
+            if(i < 0 || i > this._numberOfReplicas){
+                return -1;
+            }
+            return this._clock[i];
+        }
+
+        public List<int> toList(){
+            var listToReturn = new List<int>();
+
+            foreach(int i in this._clock){
+                listToReturn.Add(i);
+            }
+            return listToReturn;
+        }
+
+        public static bool operator >=(LamportClock l1, LamportClock l2) {
+            for(int i = 0; i < l1._numberOfReplicas; i++){
+                if((l2.At(i) != -1) && (l1.At(i) < l2.At(i))){
+                    return false;
+                }
+            }
+            return true;
+        }
+        public static bool operator <=(LamportClock l1, LamportClock l2) {
+            for(int i = 0; i < l1._numberOfReplicas; i++){
+                if((l2.At(i) != -1) && (l1.At(i) > l2.At(i))){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public bool isConcurrent(LamportClock otherClock){
+            return (!(this >= otherClock) && !(this <= otherClock)); 
         }
     }
 

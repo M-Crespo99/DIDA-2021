@@ -19,7 +19,6 @@
   <Protobuf Include="../Protos/DIDAStorage.proto" GrpcServices="Client" />
   </ItemGroup>
 <ItemGroup>
-  <ProjectReference Include="..\GossipLib\GossipLib.csproj" />
 </ItemGroup>
 
 </Project>

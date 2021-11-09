@@ -1,14 +1,14 @@
 ﻿namespace DIDAStorage {
 	public interface IDIDAStorage {
 		DIDARecord Read(string id, DIDAVersion version);
-		DIDAVersion Write(string id, string val, GossipLib.LamportClock clock);
+		DIDAVersion Write(string id, string val, StorageFrontend.LamportClock clock);
 		DIDAVersion UpdateIfValueIs(string id, string oldvalue, string newvalue);
 	}
 	public struct DIDARecord {
 		public string id;
 		public DIDAVersion version;
 
-		public GossipLib.LamportClock valueTS;
+		public StorageFrontend.LamportClock valueTS;
 		public string val;
 	}
 
@@ -17,7 +17,7 @@
 		public int versionNumber;
 		public int replicaId;
 
-		public GossipLib.LamportClock replicaTS;
+		public StorageFrontend.LamportClock replicaTS;
 
 
 
@@ -61,7 +61,7 @@
 
 	public struct DIDAValue {
 		public DIDAVersion version;
-		public GossipLib.LamportClock valueTS;
+		public StorageFrontend.LamportClock valueTS;
 		public string value;
 
 		public override string ToString(){
