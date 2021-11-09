@@ -12,6 +12,7 @@ service DIDAStorageService {
   rpc status(StatusRequest) returns (StatusReply);
   rpc toggleDebug(ToggleDebugRequest) returns (ToggleDebugReply);
   rpc addStorage(AddStorageRequest) returns (AddStorageReply);
+	rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
 }
 
 message AddStorageRequest {
@@ -87,4 +88,10 @@ message DIDAUpdateIfRequest {
 
 message LamportClock{
 	repeated int32 values = 1;
+}
+
+message LivenessCheckRequest {}
+
+message LivenessCheckReply {
+	bool ok = 1;
 }

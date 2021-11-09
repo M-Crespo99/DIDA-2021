@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using DIDAStorage.Proto;
 using DIDAWorker.Proto;
 using Grpc.Core;
@@ -23,7 +22,7 @@ namespace PCS
         {
             _channel.ConnectAsync().ContinueWith(task =>
             {
-                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
+                // if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
             });
 
             return _channel;
@@ -45,6 +44,24 @@ namespace PCS
             return response;
         }
         
+        public bool liveness()
+        {
+            lock (this)
+            {
+                var res = false;
+                try
+                {
+                    var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+                    var response = client.livenessCheckAsync(new LivenessCheckRequest()).GetAwaiter().GetResult();
+                    res = response.Ok;
+                    ShutdownChannel();
+                }
+                catch (Exception e) { }
+                
+                return res;
+            }
+        }
+        
         public ListServerReply ListServerWorker()
         {
             
@@ -64,7 +81,6 @@ namespace PCS
             {
                 client.crashServerAsync(request).GetAwaiter().GetResult();
             }
-            catch (Exception e) { }
             finally
             {
                 ShutdownChannel();

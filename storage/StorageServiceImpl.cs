@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using System;
 using System.Collections.Concurrent;
+using DIDAStorage.Proto;
 
 namespace storage{
 
@@ -142,6 +143,11 @@ namespace storage{
             }catch(DIDAStorage.Exceptions.DIDAStorageException e){
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
+        }
+
+        public override async Task<LivenessCheckReply> livenessCheck(LivenessCheckRequest request, ServerCallContext context)
+        {
+            return await Task.FromResult(new LivenessCheckReply{Ok = true});
         }
     }
 }
