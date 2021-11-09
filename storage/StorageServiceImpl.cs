@@ -1,8 +1,12 @@
-using System.Threading.Tasks;
-using Grpc.Core;
 using System;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
+using DIDAStorage;
+using DIDAStorage.Exceptions;
 using DIDAStorage.Proto;
+using Grpc.Core;
+using DIDAVersion = DIDAStorage.Proto.DIDAVersion;
+using LamportClock = GossipLib.LamportClock;
 
 namespace storage{
 
@@ -17,11 +21,11 @@ namespace storage{
         public int Port { get; set;}
     }
     
-    public class StorageServerService : DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceBase{
+    public class StorageServerService : DIDAStorageService.DIDAStorageServiceBase{
         
 
-        GossipLib.LamportClock _clock;
-        DIDAStorage.Storage storage;
+        LamportClock _clock;
+        Storage storage;
 
         ConcurrentDictionary<string, StorageDetails> _otherStorageNodes = new ConcurrentDictionary<string, StorageDetails>();
 
@@ -30,7 +34,7 @@ namespace storage{
         private string _host;
         private int _port;
         public StorageServerService(int replicaId, string host, int port, int gossipDelay){
-            storage = new DIDAStorage.Storage(replicaId, true);
+            storage = new Storage(replicaId, true);
             this._gossipDelay = gossipDelay;
 
             this._host = host;
@@ -38,38 +42,38 @@ namespace storage{
         }
 
 
-        public override Task<DIDAStorage.Proto.DIDARecordReply> read(DIDAStorage.Proto.DIDAReadRequest request, ServerCallContext context){
+        public override Task<DIDARecordReply> read(DIDAReadRequest request, ServerCallContext context){
             return Task.FromResult(processReadRequest(request));
         }
 
-        public override Task<DIDAStorage.Proto.DIDAVersion> write(DIDAStorage.Proto.DIDAWriteRequest request, ServerCallContext context){
+        public override Task<DIDAVersion> write(DIDAWriteRequest request, ServerCallContext context){
             return Task.FromResult(processWriteRequest(request));
         }
 
-        public override Task<DIDAStorage.Proto.DIDAVersion> updateIfValueIs(DIDAStorage.Proto.DIDAUpdateIfRequest request, ServerCallContext context){
+        public override Task<DIDAVersion> updateIfValueIs(DIDAUpdateIfRequest request, ServerCallContext context){
             return Task.FromResult(processUpdateIfRequest(request));
         }
 
-        public override Task<DIDAStorage.Proto.DIDACrashServerReply> crashServer(DIDAStorage.Proto.DIDACrashServerRequest request, ServerCallContext context){
+        public override Task<DIDACrashServerReply> crashServer(DIDACrashServerRequest request, ServerCallContext context){
             Environment.Exit(1);
             //This should not reach here, but who knows
             throw new NotImplementedException();
         }
 
-        public override Task<DIDAStorage.Proto.DIDAListServerReply> listServer(DIDAStorage.Proto.DIDAListServerRequest request, ServerCallContext context){
+        public override Task<DIDAListServerReply> listServer(DIDAListServerRequest request, ServerCallContext context){
             return Task.FromResult(this.storage.getProtoRecords());
         }
 
-        public override Task<DIDAStorage.Proto.ToggleDebugReply> toggleDebug(DIDAStorage.Proto.ToggleDebugRequest request, ServerCallContext context){
+        public override Task<ToggleDebugReply> toggleDebug(ToggleDebugRequest request, ServerCallContext context){
             bool debug = this.storage.toggleDebug();
-            return Task.FromResult(new DIDAStorage.Proto.ToggleDebugReply{ DebugStatus = debug});
+            return Task.FromResult(new ToggleDebugReply{ DebugStatus = debug});
         }
-        public override Task<DIDAStorage.Proto.StatusReply> status(DIDAStorage.Proto.StatusRequest request, ServerCallContext context){
+        public override Task<StatusReply> status(StatusRequest request, ServerCallContext context){
             this.storage.printStatus();
-            return Task.FromResult(new DIDAStorage.Proto.StatusReply{ Ok = true});
+            return Task.FromResult(new StatusReply{ Ok = true});
         }
 
-        public override Task<DIDAStorage.Proto.AddStorageReply> addStorage(DIDAStorage.Proto.AddStorageRequest request, ServerCallContext context){
+        public override Task<AddStorageReply> addStorage(AddStorageRequest request, ServerCallContext context){
             
             if(!(this._otherStorageNodes.TryAdd(request.Id, new StorageDetails(request.Host, request.Port)))){
                 this._otherStorageNodes[request.Id] =  new StorageDetails(request.Host, request.Port);
@@ -84,10 +88,10 @@ namespace storage{
             }
             Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
 
-            return Task.FromResult(new DIDAStorage.Proto.AddStorageReply{ Ok = true });
+            return Task.FromResult(new AddStorageReply{ Ok = true });
         }
 
-        private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
+        private DIDARecordReply processReadRequest(DIDAReadRequest request){
             try{
                 DIDAStorage.DIDAVersion version = new DIDAStorage.DIDAVersion();
 
@@ -102,11 +106,11 @@ namespace storage{
                                     replicaId = request.Version.ReplicaId
                                     };
                 }
-                DIDAStorage.DIDARecord record = storage.Read(request.Id, version);
+                DIDARecord record = storage.Read(request.Id, version);
 
-                DIDAStorage.Proto.DIDARecordReply reply = new DIDAStorage.Proto.DIDARecordReply{
+                DIDARecordReply reply = new DIDARecordReply{
                     Id = request.Id,
-                    Version = new DIDAStorage.Proto.DIDAVersion{
+                    Version = new DIDAVersion{
                         VersionNumber = record.version.versionNumber,
                         ReplicaId = record.version.replicaId
                     },
@@ -115,20 +119,20 @@ namespace storage{
                 return reply;
 
             }
-            catch(DIDAStorage.Exceptions.DIDAStorageException e){
+            catch(DIDAStorageException e){
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
         }
 
-         private DIDAStorage.Proto.DIDAVersion processWriteRequest(DIDAStorage.Proto.DIDAWriteRequest request){
+         private DIDAVersion processWriteRequest(DIDAWriteRequest request){
             DIDAStorage.DIDAVersion version = storage.Write(request.Id, request.Val);
-            return new DIDAStorage.Proto.DIDAVersion {
+            return new DIDAVersion {
                 VersionNumber = version.versionNumber,
                 ReplicaId = version.replicaId,
             };
         }
 
-        private DIDAStorage.Proto.DIDAVersion processUpdateIfRequest(DIDAStorage.Proto.DIDAUpdateIfRequest request){
+        private DIDAVersion processUpdateIfRequest(DIDAUpdateIfRequest request){
             try{
                 DIDAStorage.DIDAVersion version = storage.UpdateIfValueIs(request.Id, request.Oldvalue, request.Newvalue);
 
@@ -136,11 +140,11 @@ namespace storage{
                      throw new RpcException(new Status(StatusCode.InvalidArgument, "Value to update did not match."));
                 }
 
-                return new DIDAStorage.Proto.DIDAVersion {
+                return new DIDAVersion {
                 VersionNumber = version.versionNumber,
                 ReplicaId = version.replicaId,
             };
-            }catch(DIDAStorage.Exceptions.DIDAStorageException e){
+            }catch(DIDAStorageException e){
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
         }
@@ -148,6 +152,18 @@ namespace storage{
         public override async Task<LivenessCheckReply> livenessCheck(LivenessCheckRequest request, ServerCallContext context)
         {
             return await Task.FromResult(new LivenessCheckReply{Ok = true});
+        }
+
+        public override async Task<RemoveFailedStorageReply> removeFailedStorage(RemoveFailedStorageRequest request, ServerCallContext context)
+        {
+            if (_otherStorageNodes.ContainsKey(request.Id))
+            {
+                var keyValue = _otherStorageNodes[request.Id];
+                _otherStorageNodes.TryRemove(request.Id, out keyValue);
+                Console.WriteLine("Failed Storage with ID: {0} removed",request.Id);
+            }
+
+            return await Task.FromResult(new RemoveFailedStorageReply());
         }
     }
 }

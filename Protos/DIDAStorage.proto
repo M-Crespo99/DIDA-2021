@@ -13,6 +13,7 @@ service DIDAStorageService {
   rpc toggleDebug(ToggleDebugRequest) returns (ToggleDebugReply);
   rpc addStorage(AddStorageRequest) returns (AddStorageReply);
 	rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
+	rpc removeFailedStorage(RemoveFailedStorageRequest) returns (RemoveFailedStorageReply);
 }
 
 message AddStorageRequest {
@@ -95,3 +96,9 @@ message LivenessCheckRequest {}
 message LivenessCheckReply {
 	bool ok = 1;
 }
+
+message RemoveFailedStorageRequest{
+	string id = 1;
+}
+
+message RemoveFailedStorageReply {}

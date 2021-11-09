@@ -45,6 +45,20 @@ namespace PCS
                     Console.WriteLine("Storage ID: {0} - Host: {1} failed", id, host);
                 }
             }
+            
+            foreach (var idHostStorage in IdHostStorage)
+            {
+                foreach (var valuePair in idHostStorageToRemove)
+                {
+                    var client = new Client(idHostStorage.Value);
+                    if (client.liveness())
+                    {
+                        client = new Client(idHostStorage.Value);
+                        client.removeFailedStorage(valuePair.Key);
+                    }
+                }
+                
+            }
         }
         public override async Task<PCSRunWorkerReply> runWorker(PCSRunWorkerRequest request, ServerCallContext context)
         {

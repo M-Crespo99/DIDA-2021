@@ -62,6 +62,17 @@ namespace PCS
             }
         }
         
+        public void removeFailedStorage(string id)
+        {
+            try
+            {
+                var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+                client.removeFailedStorageAsync(new RemoveFailedStorageRequest{Id = id}).GetAwaiter().GetResult();
+                ShutdownChannel();
+            }
+            catch (Exception e) { }
+        }
+        
         public ListServerReply ListServerWorker()
         {
             
