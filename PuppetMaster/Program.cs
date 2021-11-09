@@ -27,7 +27,6 @@ namespace PuppetMaster
         { 
             bool exit = false;
             
-            
             ShowTitle();
 
             while (!exit)
@@ -36,6 +35,10 @@ namespace PuppetMaster
                 // ShowMenu();
                 Console.Write("> ");
                 string command = Console.ReadLine();
+                if (command == null)
+                {
+                    exit = true;
+                }
                 try
                 {
                     
@@ -181,7 +184,7 @@ namespace PuppetMaster
 
             if (command != null)
             {
-                var parameters = command.Split(" ");
+                var parameters = System.Text.RegularExpressions.Regex.Split(command, @"\s+");
                 if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
@@ -209,7 +212,7 @@ namespace PuppetMaster
         {
             if (command != null)
             {
-                var parameters = command.Split(" ");
+                var parameters = System.Text.RegularExpressions.Regex.Split(command, @"\s+");
                 if (parameters.Length == 4)
                 {
                     var commandLine = new CommandLine();
@@ -237,7 +240,7 @@ namespace PuppetMaster
         {
             if (command != null)
             {
-                var parameters = command.Split(" ");
+                var parameters = System.Text.RegularExpressions.Regex.Split(command, @"\s+");
                 if (parameters.Length == 3)
                 {
                     var commandLine = new CommandLine();

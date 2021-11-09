@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using DIDAStorage.Proto;
 using DIDAWorker.Proto;
 using Grpc.Core;
@@ -15,6 +14,7 @@ namespace PCS
 
         public Client(string target)
         {
+            target = target.Replace("http://", "").Replace("https://", "");
             _channel = new Channel(target, ChannelCredentials.Insecure);
         }
 
@@ -22,7 +22,7 @@ namespace PCS
         {
             _channel.ConnectAsync().ContinueWith(task =>
             {
-                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
+                // if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
             });
 
             return _channel;
@@ -44,6 +44,35 @@ namespace PCS
             return response;
         }
         
+        public bool liveness()
+        {
+            lock (this)
+            {
+                var res = false;
+                try
+                {
+                    var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+                    var response = client.livenessCheckAsync(new LivenessCheckRequest()).GetAwaiter().GetResult();
+                    res = response.Ok;
+                    ShutdownChannel();
+                }
+                catch (Exception e) { }
+                
+                return res;
+            }
+        }
+        
+        public void removeFailedStorage(string id)
+        {
+            try
+            {
+                var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+                client.removeFailedStorageAsync(new RemoveFailedStorageRequest{Id = id}).GetAwaiter().GetResult();
+                ShutdownChannel();
+            }
+            catch (Exception e) { }
+        }
+        
         public ListServerReply ListServerWorker()
         {
             
@@ -63,7 +92,6 @@ namespace PCS
             {
                 client.crashServerAsync(request).GetAwaiter().GetResult();
             }
-            catch (Exception e) { }
             finally
             {
                 ShutdownChannel();

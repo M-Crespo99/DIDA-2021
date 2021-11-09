@@ -55,7 +55,6 @@ namespace scheduler
             newRequest.Input = request.Input;
             newRequest.Next = 0;
             newRequest.ChainSize = operators.Count;
-Console.WriteLine("2");
             try{
                 this.ScheduleOperators(newRequest, operators);
                 this.AssignStorageDetails(newRequest);
@@ -64,7 +63,6 @@ Console.WriteLine("2");
                 Console.WriteLine(e);
 
             }
-Console.WriteLine("3");
 
             WorkerFrontend.Frontend workerFrontend = new WorkerFrontend.Frontend(newRequest.Chain.First().Host, newRequest.Chain.First().Port);
 
@@ -163,8 +161,10 @@ Console.WriteLine("3");
             }
         }
 
-        private Tuple<string, string> GetAddressInfo(string URL){
-            var parts = URL.Split(":");
+        private Tuple<string, string> GetAddressInfo(string URL)
+        {
+            var new_URL = URL.Replace("http://", "").Replace("https://", "");
+            var parts = new_URL.Split(":");
             if(parts.Length == 2){
                 return new Tuple<string, string>(parts[0], parts[1]);
             }else{
@@ -172,7 +172,7 @@ Console.WriteLine("3");
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.Write("WARNING");
                     Console.ResetColor();
-                    Console.WriteLine(": Could not parse address \"{1}\".", URL);
+                    Console.WriteLine(": Could not parse address \"{0}\".", URL);
                 }
             }
             return null;

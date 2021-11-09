@@ -13,6 +13,8 @@ service DIDAStorageService {
   rpc toggleDebug(ToggleDebugRequest) returns (ToggleDebugReply);
   rpc addStorage(AddStorageRequest) returns (AddStorageReply);
   rpc gossip(GossipMessage) returns (GossipReply);
+  rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
+  rpc removeFailedStorage(RemoveFailedStorageRequest) returns (RemoveFailedStorageReply);
 }
 
 
@@ -21,6 +23,7 @@ message GossipMessage{
 }
 
 message GossipReply {
+
 
 }
 
@@ -118,3 +121,15 @@ message GossipOperation{
 message LamportClock{
 	repeated int32 values = 1;
 }
+
+message LivenessCheckRequest {}
+
+message LivenessCheckReply {
+	bool ok = 1;
+}
+
+message RemoveFailedStorageRequest{
+	string id = 1;
+}
+
+message RemoveFailedStorageReply {}

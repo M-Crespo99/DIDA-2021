@@ -1,11 +1,12 @@
-using System.Threading.Tasks;
-using Grpc.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Grpc.Net.Client;
 using System.Linq;
 
+using System.Threading.Tasks;
+using DIDAStorage;
+using Grpc.Core;
 
 namespace storage{
 
@@ -24,6 +25,7 @@ namespace storage{
         
         DIDAStorage.Storage storage;
 
+
         ConcurrentDictionary<string, StorageDetails> _otherStorageNodes = new ConcurrentDictionary<string, StorageDetails>();
 
 
@@ -38,7 +40,7 @@ namespace storage{
 
         private int _replicaId;
         public StorageServerService(int replicaId, string host, int port, int gossipDelay){
-            storage = new DIDAStorage.Storage(replicaId, true);
+            storage = new Storage(replicaId, true);
             this._gossipDelay = gossipDelay;
 
             this._host = host;
@@ -144,7 +146,7 @@ namespace storage{
                                     replicaId = request.Version.ReplicaId
                                     };
                 }
-                DIDAStorage.DIDARecord record = storage.Read(request.Id, version);
+                DIDARecord record = storage.Read(request.Id, version);
 
                 DIDAStorage.Proto.DIDARecordReply reply = new DIDAStorage.Proto.DIDARecordReply{
                     Id = request.Id,
@@ -377,6 +379,23 @@ namespace storage{
                 }
             }
             return listToReturn;
+        }
+
+        public override async Task<DIDAStorage.Proto.LivenessCheckReply> livenessCheck(DIDAStorage.Proto.LivenessCheckRequest request, ServerCallContext context)
+        {
+            return await Task.FromResult(new DIDAStorage.Proto.LivenessCheckReply{Ok = true});
+        }
+
+        public override async Task<DIDAStorage.Proto.RemoveFailedStorageReply> removeFailedStorage(DIDAStorage.Proto.RemoveFailedStorageRequest request, ServerCallContext context)
+        {
+            if (_otherStorageNodes.ContainsKey(request.Id))
+            {
+                var keyValue = _otherStorageNodes[request.Id];
+                _otherStorageNodes.TryRemove(request.Id, out keyValue);
+                Console.WriteLine("Failed Storage with ID: {0} removed",request.Id);
+            }
+
+            return await Task.FromResult(new DIDAStorage.Proto.RemoveFailedStorageReply());
         }
     }
 

@@ -3,9 +3,9 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
-using System.Threading;
 using static PCSService;
 
 namespace PCS
@@ -15,10 +15,51 @@ namespace PCS
         private static readonly int NumProcs = Environment.ProcessorCount;
         private static readonly int ConcurrencyLevel = NumProcs * 2;
 
-        private readonly ConcurrentDictionary<string, string> _idWorker = new (ConcurrencyLevel, 100);
-        private readonly ConcurrentDictionary<string, string> _idHostStorage = new (ConcurrencyLevel, 100);
-        private readonly ConcurrentDictionary<string, string> _idScheduler = new (ConcurrencyLevel, 100);
+        private static readonly ConcurrentDictionary<string, string> IdWorker = new (ConcurrencyLevel, 100);
+        private static readonly ConcurrentDictionary<string, string> IdHostStorage = new (ConcurrencyLevel, 100);
+        private static readonly ConcurrentDictionary<string, string> IdScheduler = new (ConcurrencyLevel, 100);
         private readonly string [] _schedulers = new string[10];
+        
+        public static void CheckStorageLiveness()
+        {
+            ConcurrentDictionary<string, string> idHostStorageToRemove = new (ConcurrencyLevel, 100);
+            foreach (var keyValuePair in IdHostStorage)
+            {
+                try
+                {
+                    var client = new Client(keyValuePair.Value);
+                    if (!client.liveness())
+                    {
+                        idHostStorageToRemove.TryAdd(keyValuePair.Key, keyValuePair.Value);
+                    }
+                }catch(Exception e){}
+                
+            }
+            
+            foreach (var keyValuePair in idHostStorageToRemove)
+            {
+                var id = keyValuePair.Key;
+                var host = keyValuePair.Value;
+                if (IdHostStorage.TryRemove(id, out host))
+                {
+                    Console.WriteLine("Storage ID: {0} - Host: {1} failed", id, host);
+                }
+            }
+            
+            foreach (var idHostStorage in IdHostStorage)
+            {
+                foreach (var valuePair in idHostStorageToRemove)
+                {
+                    var client = new Client(idHostStorage.Value);
+                    if (client.liveness())
+                    {
+                        client = new Client(idHostStorage.Value);
+                        client.removeFailedStorage(valuePair.Key);
+                    }
+                }
+                
+            }
+        }
         public override async Task<PCSRunWorkerReply> runWorker(PCSRunWorkerRequest request, ServerCallContext context)
         {
             Console.WriteLine("## Creating Worker ##");
@@ -40,17 +81,17 @@ namespace PCS
                 var argument = "";
                 if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
                 {
-                    argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1} {2}", dir, newPort, request.Id);    
+                    argument = String.Format("{0}/bin/Debug/net5.0/worker.dll {1} {2} {3}", dir, newPort, request.Id, request.GossipDelay);    
                 }
                 else
                 {
-                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\worker.dll {1} {2}", dir, newPort, request.Id);
+                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\worker.dll {1} {2} {3}", dir, newPort, request.Id, request.GossipDelay);
                 }
                 
                 
 
                 executeRunCommand("dotnet", argument);
-                _idWorker.TryAdd(request.Id, request.Url);
+                IdWorker.TryAdd(request.Id, request.Url);
 
                 return await Task.FromResult(new PCSRunWorkerReply {Ok = true});
             }
@@ -87,7 +128,10 @@ namespace PCS
                     .Replace("https://", "")
                     .Split(":")[1];
 
-                var host = String.Format("localhost:{0}", newPort);
+                var host = request.Url
+                    .Replace("http://", "")
+                    .Replace("https://", "")
+                    .Split(":")[0];
 
                 var argument = "";
                 if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
@@ -98,37 +142,34 @@ namespace PCS
                 {
                     argument = String.Format("{0}\\bin\\Debug\\net5.0\\storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);
                 }
-                
-                
+
                 executeRunCommand("dotnet", argument);
 
-             
-
-                
-
                 //Make sure all the storages know of the new storage
-                foreach(var entry in _idHostStorage){
+                foreach(var entry in IdHostStorage){
                     var client = new Client(entry.Value);
-                    client.addStorage(request.Id, request.Url.Split(":")[0], Int32.Parse(request.Url.Split(":")[1]));
+                    client.addStorage(request.Id, host, Int32.Parse(newPort));
                 }
 
-                _idHostStorage.TryAdd(request.Id, request.Url);
+                IdHostStorage.TryAdd(request.Id, request.Url);
 
                 //Make sure the new storage knows about all the other storages
 
                 Console.WriteLine("Waiting for storage to initialize...");
                 Thread.Sleep(750);
                 Console.WriteLine("Done.");
-                var ClientForNewStorage = new Client(request.Url);
-                foreach(var entry in _idHostStorage){
-                    string entryHost = entry.Value.Split(":")[0];
-                    int entryPort = Int32.Parse(entry.Value.Split(":")[1]);
+                var clientForNewStorage = new Client(request.Url);
+                foreach(var entry in IdHostStorage){
+                    Console.WriteLine(entry.Value);
+                    var url = entry.Value.Replace("http://", "").Replace("https://", "");
+                    string entryHost = url.Split(":")[0];
+                    int entryPort = Int32.Parse(url.Split(":")[1]);
 
                     //Dont send you to yourself
-                    if((entryHost == request.Url.Split(":")[0]) && (entryPort == Int32.Parse(request.Url.Split(":")[1]))){
+                    if((entryHost == host) && (entryPort == Int32.Parse(newPort))){
                         continue;
                     }
-                    ClientForNewStorage.addStorage(entry.Key, entryHost, entryPort);
+                    clientForNewStorage.addStorage(entry.Key, entryHost, entryPort);
                 }
 
                 return await Task.FromResult(new PCSRunStorageReply {Ok = true});
@@ -172,7 +213,7 @@ namespace PCS
                 }
                 
                 executeRunCommand("dotnet", argument);
-                _idScheduler.TryAdd(request.Id, request.Url);
+                IdScheduler.TryAdd(request.Id, request.Url);
                 _schedulers[0] = request.Url;
                 
                 return await Task.FromResult(new PCSRunSchedulerReply {Ok = true});
@@ -188,13 +229,17 @@ namespace PCS
         public override async Task<PcsListGlobalReply> listGlobal(PcsListGlobalRequest request, ServerCallContext context)
         {
             Console.WriteLine("## Listing all objects stored on the system ##");
-            foreach (var keyValuePair in _idHostStorage)
+            foreach (var keyValuePair in IdHostStorage)
             {
                 var client = new Client(keyValuePair.Value);
-                client.ListServerStorage();
+                if (client.liveness())
+                {
+                    client = new Client(keyValuePair.Value);
+                    client.ListServerStorage();    
+                }
             }
             
-            foreach (var keyValuePair in _idWorker)
+            foreach (var keyValuePair in IdWorker)
             {
                 var client = new Client(keyValuePair.Value);
                 client.ListServerWorker();
@@ -205,12 +250,12 @@ namespace PCS
 
         public override async Task<PcsGetStoragesReply> getStorages(PcsGetStoragesRequest request, ServerCallContext context)
         {
-            return await Task.FromResult(new PcsGetStoragesReply {Storages = { _idHostStorage.Values }});
+            return await Task.FromResult(new PcsGetStoragesReply {Storages = { IdHostStorage.Values }});
         }
 
         public override async Task<PcsGetWorkersReply> getWorkers(PcsGetWorkersRequest request, ServerCallContext context)
         {
-            var workers = _idWorker.Select(pair => pair.Key + "+" + pair.Value).ToArray();
+            var workers = IdWorker.Select(pair => pair.Key + "+" + pair.Value).ToArray();
             return await Task.FromResult(new PcsGetWorkersReply {Workers = { workers }});
         }
 
@@ -221,12 +266,15 @@ namespace PCS
 
         public override async Task<PcsListServerReply> listServer(PcsListServerRequest request, ServerCallContext context)
         {
-            var storageUrl = _idHostStorage[request.Id];
-            if (storageUrl != null)
+            if (IdHostStorage.ContainsKey(request.Id))
             {
+                var storageUrl = IdHostStorage[request.Id];
                 var client = new Client(storageUrl);
-                var result = client.ListServerStorage();
-            
+                if (client.liveness())
+                {
+                    client = new Client(storageUrl);
+                    var result = client.ListServerStorage();    
+                }
                 // foreach (var didaCompleteRecord in result.Records)
                 // {
                 //     Console.WriteLine(didaCompleteRecord.Id);
@@ -239,9 +287,10 @@ namespace PCS
                 //     }
                 // }
             }
-            var workerUrl = _idWorker[request.Id];
-            if (workerUrl != null)
+            
+            if (IdWorker.ContainsKey(request.Id))
             {
+                var workerUrl = IdWorker[request.Id];
                 var clientWorker = new Client(workerUrl);
                 var resultWorker = clientWorker.ListServerWorker();
                 foreach (var resultWorkerDetail in resultWorker.Details)
@@ -250,22 +299,21 @@ namespace PCS
                     Console.WriteLine(resultWorkerDetail.TotalTime);
                     Console.WriteLine(resultWorkerDetail.Executions);
                 }
-            
+
                 return await Task.FromResult(new PcsListServerReply());
             }
-            
             return await Task.FromResult(new PcsListServerReply());
         }
 
         public override async Task<CrashReply> crash(CrashRequest request, ServerCallContext context)
         {
-            var storageUrl = _idHostStorage[request.Id];
+            var storageUrl = IdHostStorage[request.Id];
             if (storageUrl == null) return await Task.FromResult(new CrashReply {Ok = false});
             
             var client = new Client(storageUrl);
             client.CrashStorage();
 
-            if (_idHostStorage.TryRemove(request.Id, out storageUrl))
+            if (IdHostStorage.TryRemove(request.Id, out storageUrl))
             {
                 Console.WriteLine("storage {0} crashed", storageUrl);    
             }
@@ -280,14 +328,17 @@ namespace PCS
         public override async Task<PcsStatusReply> status(PcsStatusRequest request, ServerCallContext context)
         {
             
-            //TODO do the liveness first (if its up or not) for all below
-            foreach (var keyValuePair in _idHostStorage)
+            foreach (var keyValuePair in IdHostStorage)
             {
                 var client = new Client(keyValuePair.Value);
-                client.PrintStorageStatus();
+                if (client.liveness())
+                {
+                    client = new Client(keyValuePair.Value);
+                    client.PrintStorageStatus();    
+                }
             }
 
-            foreach (var keyValuePair in _idWorker)
+            foreach (var keyValuePair in IdWorker)
             {
                 var client = new Client(keyValuePair.Value);
                 client.PrintWorkerStatus();
@@ -303,13 +354,13 @@ namespace PCS
 
         public override async Task<PopulateReply> populate(PopulateRequest request, ServerCallContext context)
         {
-            if (!_idHostStorage.IsEmpty)
+            if (!IdHostStorage.IsEmpty)
             {
                 try
                 {
                     var dir = Environment.CurrentDirectory;
                     string[] lines = File.ReadAllLines(String.Format(dir + "/populate_files/" + request.DataFilePath));
-                    var firstStorageUrl = _idHostStorage.Values.First();
+                    var firstStorageUrl = IdHostStorage.Values.First();
                     var client = new Client(firstStorageUrl);
                     
                     if (lines.Length > 0) { client.WriteIntoStorage(lines); }

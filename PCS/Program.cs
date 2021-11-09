@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using Grpc.Core;
 using Grpc.Reflection;
 using Grpc.Reflection.V1Alpha;
@@ -22,6 +23,7 @@ namespace PCS
                 };
                 server.Start();
                 Console.WriteLine("The PCS server is listening on the port: " + Port);
+                Scheduler.IntervalInSeconds(1, () => PcsServiceImpl.CheckStorageLiveness());
                 Console.ReadKey();
             }
             catch (Exception e)

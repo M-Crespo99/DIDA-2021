@@ -19,7 +19,7 @@ namespace PuppetMaster
         {
             _channel.ConnectAsync().ContinueWith(task =>
             {
-                if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
+                // if (task.Status == TaskStatus.RanToCompletion) Console.WriteLine("");
             });
 
             return _channel;
@@ -102,10 +102,20 @@ namespace PuppetMaster
         
         public CrashReply CrashStorage(string storageId)
         {
-            var client = new PCSService.PCSServiceClient(GetConnection());
-            client.crashAsync(new CrashRequest {Id = storageId}).GetAwaiter().GetResult();
-            ShutdownChannel();
-            return new CrashReply{Ok = true};
+            lock (this)
+            {
+                try
+                {
+                    var client = new PCSService.PCSServiceClient(GetConnection());
+                    client.crashAsync(new CrashRequest {Id = storageId}).GetAwaiter().GetResult();
+                    ShutdownChannel();
+                }
+                catch (Exception e)
+                {
+                    
+                }
+                return new CrashReply {Ok = true};
+            }
         }
         
         public void PrintStatus()

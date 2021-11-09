@@ -13,7 +13,7 @@ namespace PuppetMaster
 
         public SchedulerClient(string target)
         {
-            _channel = new Channel(target, ChannelCredentials.Insecure);
+            _channel = new Channel(target.Replace("https://", "").Replace("http://", ""), ChannelCredentials.Insecure);
         }
 
         private Channel GetConnection()
@@ -36,9 +36,20 @@ namespace PuppetMaster
                 Workers = { pmRunApplicationRequest.Workers },
                 FilePath = pmRunApplicationRequest.FilePath
             };
-            var response = client.runApplicationAsync(request).GetAwaiter().GetResult();
-            ShutdownChannel();
-            return new PmRunApplicationReply {Ok = response.Ok};
+            Console.WriteLine("Before client call");
+            try
+            {
+                var response = client.runApplicationAsync(request).GetAwaiter().GetResult();
+                Console.WriteLine("After client call");
+                ShutdownChannel();
+                return new PmRunApplicationReply {Ok = response.Ok};
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            return new PmRunApplicationReply {Ok = false};
         }
         
         private void ShutdownChannel()
