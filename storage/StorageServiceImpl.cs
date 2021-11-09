@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Grpc.Net.Client;
 using System.Linq;
-
 using System.Threading.Tasks;
 using DIDAStorage;
 using Grpc.Core;
@@ -165,18 +164,7 @@ namespace storage{
             }
         }
 
-         private DIDAStorage.Proto.DIDAVersion processWriteRequest(DIDAStorage.Proto.DIDAWriteRequest request){
-            //Check if new update
-            //If new, increment ith element of replica timestamp
-            //Assign new timestamp to u
-            //Put u on the log
-            //If update is stable, process the update
-            //Process: value = apply(value, operation)
-            //         valueTS = merge(valueTS and updateTS)
-            //         Append to executed updates
-
-
-            
+         private DIDAStorage.Proto.DIDAVersion processWriteRequest(DIDAStorage.Proto.DIDAWriteRequest request){            
             var newEntry = this.addToLog(request);
 
             try{
@@ -194,7 +182,7 @@ namespace storage{
                 if(this.isStable(newEntry)){
                      version = storage.Write(request.Id, request.Val, newEntry, false);
                      this.executedUpdates.Add(request.UniqueID);
-                     this.sendGossipMessages();
+                     Task.Factory.StartNew(() => this.sendGossipMessages());
                 }else{
                     version = new DIDAStorage.DIDAVersion{
                         versionNumber = -1,
@@ -254,41 +242,41 @@ namespace storage{
 
         private GossipLib.GossipLogRecord addToLog(DIDAStorage.Proto.DIDAWriteRequest request){
             try{
+                int replicaId = this._replicaId;
+                
+                //increment ReplicaTS at replicaID by one
+                this.storage.incrementReplicaTSOnRecord(request.Id);
 
-            
-            int replicaId = this._replicaId;
-            
-            //increment ReplicaTS at replicaID by one
-            this.storage.incrementReplicaTSOnRecord(request.Id);
+                var prev = this.protoToLClock(request.Clock);
+                
+                var ts = prev;
 
-            var prev = this.protoToLClock(request.Clock);
-            
-            var ts = prev;
+                ts.incrementAt(this._replicaId - 1);
 
-            ts.incrementAt(this._replicaId - 1);
+                var updateId = request.UniqueID;
 
-            var updateId = request.UniqueID;
+                var op = new GossipLib.operation{
+                    key = request.Id,
+                    opType = GossipLib.operationType.WRITE,
+                    versionNumber = this.storage.getNextVersionNumber(request.Id),
+                    newValue = request.Val
+                };
 
-            var op = new GossipLib.operation{
-                key = request.Id,
-                opType = GossipLib.operationType.WRITE,
-                versionNumber = this.storage.getNextVersionNumber(request.Id),
-                newValue = request.Val
-            };
-
-            var replicaTS = this.storage.getReplicaTimestamp(request.Id).DeepCopy();
+                var replicaTS = this.storage.getReplicaTimestamp(request.Id).DeepCopy();
 
 
-            var newEntry = new GossipLib.GossipLogRecord(replicaId,
-                                                        ts,
-                                                        this.protoToLClock(request.Clock),
-                                                        replicaTS,
-                                                        updateId,
-                                                        op);
+                var newEntry = new GossipLib.GossipLogRecord(replicaId,
+                                                            ts,
+                                                            this.protoToLClock(request.Clock),
+                                                            replicaTS,
+                                                            updateId,
+                                                            op);
 
-            this.replicaLog.Add(newEntry);
+                lock(this.replicaLog){
+                    this.replicaLog.Add(newEntry);
+                }
 
-            return newEntry;
+                return newEntry;
                         
             }     
             catch (Exception e){
@@ -310,20 +298,25 @@ namespace storage{
 
 
         private void sendGossipMessages(){
-            foreach(var storage in this._otherStorageNodes){
-                InternalStorageFrontend f = new InternalStorageFrontend(storage.Value.Host, storage.Value.Port);
-                f.gossip(this.replicaLog);
+            System.Threading.Thread.Sleep(this._gossipDelay);
+            lock(this.replicaLog){
+                foreach(var storage in this._otherStorageNodes){
+                    InternalStorageFrontend f = new InternalStorageFrontend(storage.Value.Host, storage.Value.Port);
+                    f.gossip(this.replicaLog);
+                }
             }
         }
 
         private void mergeLogs(DIDAStorage.Proto.GossipMessage request){
-            foreach(var entry in request.Log){
-                var logEntry = ProtoGRecordToGRecord(entry);
-                var replicaTS = this.storage.getReplicaTimestamp(entry.Operation.Key);
-                if((this.replicaLog.Find(e => e._operationIdentifier == logEntry._operationIdentifier) == null)
-                && !(protoToLClock(entry.UpdateTS) <= replicaTS)){
-                    this.replicaLog.Add(logEntry);
-                    this.storage.getReplicaTimestamp(entry.Operation.Key).merge(protoToLClock(entry.ReplicaTS));
+            lock(this.replicaLog){
+                foreach(var entry in request.Log){
+                    var logEntry = ProtoGRecordToGRecord(entry);
+                    var replicaTS = this.storage.getReplicaTimestamp(entry.Operation.Key);
+                    if((this.replicaLog.Find(e => e._operationIdentifier == logEntry._operationIdentifier) == null)
+                    && !(protoToLClock(entry.UpdateTS) <= replicaTS)){
+                        this.replicaLog.Add(logEntry);
+                        this.storage.getReplicaTimestamp(entry.Operation.Key).merge(protoToLClock(entry.ReplicaTS));
+                    }
                 }
             }
         }
@@ -362,20 +355,23 @@ namespace storage{
         }
         private List<string> getKeysInReplicaLog(){
             var listToReturn = new List<string>();
-
-            foreach(var record in this.replicaLog){
-                if(!listToReturn.Contains(record._operation.key)){
-                    listToReturn.Add(record._operation.key);
+            lock(this.replicaLog){
+                foreach(var record in this.replicaLog){
+                    if(!listToReturn.Contains(record._operation.key)){
+                        listToReturn.Add(record._operation.key);
+                    }
                 }
+                return listToReturn;
             }
-            return listToReturn;
         }
 
         private List<GossipLib.GossipLogRecord> filterLogByKey(string key){
             var listToReturn = new List<GossipLib.GossipLogRecord>();
-            foreach(var logRecord in this.replicaLog){
-                if(logRecord._operation.key == key){
-                    listToReturn.Add(logRecord);
+            lock(this.replicaLog){
+                foreach(var logRecord in this.replicaLog){
+                    if(logRecord._operation.key == key){
+                        listToReturn.Add(logRecord);
+                    }
                 }
             }
             return listToReturn;
