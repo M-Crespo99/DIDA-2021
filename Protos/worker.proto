@@ -17,6 +17,11 @@ message DIDARequest {
   repeated DIDAAssignment chain = 5;
 }
 
+message DIDAVersion{
+  int32 versionNumber = 1;
+  int32 replicaId = 2;
+}
+
 message DIDAReply {}
 
 message StatusRequest{}
@@ -51,6 +56,9 @@ message DIDAMetaRecord {
   repeated DIDAStorageNodeDetails storages = 2;
   string schedulerHost = 3;
   int32 schedulerPort = 4;
+
+  repeated string accessedKeys = 5;
+  repeated DIDAVersion accesedVersions = 6;
 }
 
 message DIDAAssignment {
