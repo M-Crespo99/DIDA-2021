@@ -40,6 +40,8 @@ namespace storage{
         private int _replicaId;
 
         private string _serverName;
+
+        private ConcurrentDictionary<string, List<GossipLib.LamportClock>> _tableTS = new ConcurrentDictionary<string, List<GossipLib.LamportClock>>();
         public StorageServerService(int replicaId, string host, int port, int gossipDelay, string serverName){
             storage = new Storage(replicaId, true, host, port, serverName);
             this._gossipDelay = gossipDelay;
@@ -83,16 +85,13 @@ namespace storage{
         }
 
         public override Task<DIDAStorage.Proto.GossipReply> gossip(DIDAStorage.Proto.GossipMessage request, ServerCallContext context){
-            //Merge the logs
-            //Merge incoming replica
-            //Apply any updates that have become stable and havent been executed
-            //write(id, value, version, )
-            //Eliminate records from a log 
-            //Keep gossiping
-
-
             this.mergeLogs(request);
             //Task.Factory.StartNew(() => this.sendGossipMessages());
+            try{
+                //this.updateTableTS(request);
+            } catch (Exception e){
+                Console.WriteLine(e.ToString());
+            }
 
 
             lock(this.replicaLog){
@@ -116,6 +115,7 @@ namespace storage{
                             }
                         }
                     }
+                    //this.discardRecordsFromReplicaLog();
                 }catch (Exception e){
                     Console.WriteLine(e.ToString());
                 }
@@ -199,7 +199,7 @@ namespace storage{
                 if(this.isStable(newEntry)){
                      version = storage.Write(request.Id, request.Val, newEntry, false);
                      this.executedUpdates.Add(request.UniqueID);
-                     Task.Factory.StartNew(() => this.sendGossipMessages());
+                     Task.Factory.StartNew(() => this.sendGossipMessages(this._replicaId));
                 }else{
                     version = new DIDAStorage.DIDAVersion{
                         versionNumber = -1,
@@ -320,12 +320,12 @@ namespace storage{
         }
 
 
-        private void sendGossipMessages(){
+        private void sendGossipMessages(int sender){
             System.Threading.Thread.Sleep(this._gossipDelay);
             lock(this.replicaLog){
                 foreach(var storage in this._otherStorageNodes){
                     InternalStorageFrontend f = new InternalStorageFrontend(storage.Value.Host, storage.Value.Port);
-                    f.gossip(this.replicaLog);
+                    f.gossip(sender, this.replicaLog);
                 }
             }
         }
@@ -356,7 +356,7 @@ namespace storage{
                     NewValue = entry._operation.newValue
                 },
 
-                ReplicaTS = LClockToProto(entry._replicaTS)
+                ReplicaTS = LClockToProto(entry._replicaTS),
             };
             return protoEntry;
         }
@@ -373,7 +373,6 @@ namespace storage{
                     versionNumber = entry.Operation.VersionNumber,
                     newValue = entry.Operation.NewValue
                 }
-                
             );
             return newEntry;
         }
@@ -416,6 +415,57 @@ namespace storage{
             }
 
             return await Task.FromResult(new DIDAStorage.Proto.RemoveFailedStorageReply());
+        }
+
+        private void updateTableTS(DIDAStorage.Proto.GossipMessage message){
+            lock(this.replicaLog){
+                foreach(var record in  message.Log){
+                    string key = record.Operation.Key;
+                    if(!this._tableTS.ContainsKey(record.Operation.Key)){
+                        this._tableTS.TryAdd(key, new List<GossipLib.LamportClock>());
+                        lock(this._tableTS[key]){
+                            for(int i = 0; i < this._otherStorageNodes.Count + 1; i++){
+                                this._tableTS[key].Add(new GossipLib.LamportClock(this._otherStorageNodes.Count + 1));
+                            }
+                        }
+                    }
+                    lock(this._tableTS[key]){
+                        Console.WriteLine("Sender -> " + message.Sender);
+                        this._tableTS[key][message.Sender-1] = protoToLClock(record.ReplicaTS);
+
+                    }
+                }
+            }
+        }
+        private void discardRecordsFromReplicaLog(){
+            List<GossipLib.GossipLogRecord> recordsToRemove = new List<GossipLib.GossipLogRecord>();
+            lock(this.replicaLog){
+                foreach(var entry in this.replicaLog){
+                    string id = entry._operation.key;
+                    if(this._tableTS.ContainsKey(id)){
+                        lock(this._tableTS[id]){
+                            bool control = true;
+                            for(int i = 0; i < this._otherStorageNodes.Count + 1; i++){
+                                Console.WriteLine("entry._replicaId: " + entry._replicaId);
+                                if(!(this._tableTS[id][i].At(entry._replicaId - 1) >= entry._updateTS.At(entry._replicaId - 1))){
+                                    control = false;
+                                    break;
+                                }
+                            }
+                            
+                            if(control) {
+                                recordsToRemove.Add(entry);
+                            }
+
+                        }
+                    }
+                }
+
+                for(int i = 0; i< recordsToRemove.Count; i++){
+                    Console.WriteLine("REMOVED: " + recordsToRemove[i].ToString());
+                    this.replicaLog.Remove(recordsToRemove[i]);
+                }
+            }
         }
     }
 
@@ -470,7 +520,7 @@ namespace storage{
         }
 
 
-        public void gossip(List<GossipLib.GossipLogRecord> records){
+        public void gossip(int sender, List<GossipLib.GossipLogRecord> records){
 
             var gossipMessage = new DIDAStorage.Proto.GossipMessage();
 
@@ -480,6 +530,8 @@ namespace storage{
 
                 gossipMessage.Log.Add(newProtoEntry);
             }
+
+            gossipMessage.Sender = sender;
 
             _ = this._client.gossipAsync(gossipMessage);
 

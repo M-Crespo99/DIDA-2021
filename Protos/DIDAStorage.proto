@@ -20,6 +20,7 @@ service DIDAStorageService {
 
 message GossipMessage{
 	repeated GossipLogEntry log = 1;
+	int32 sender = 2;
 }
 
 message GossipReply {
