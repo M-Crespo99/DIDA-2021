@@ -23,7 +23,7 @@ namespace PCS
                 };
                 server.Start();
                 Console.WriteLine("The PCS server is listening on the port: " + Port);
-                Scheduler.IntervalInSeconds(1, () => PcsServiceImpl.CheckStorageLiveness());
+                Scheduler.IntervalInSeconds(3, () => PcsServiceImpl.CheckStorageLiveness());
                 Console.ReadKey();
             }
             catch (Exception e)
