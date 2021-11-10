@@ -54,6 +54,16 @@ We focused on its design, implementation and evaluation in the project in this p
 
 %------------------------------------------------------------------------- 
 \Section{Problem}
+The function-as-a-service cloud platform allows to run applications in a distributed network.
+Applications consist of a chain of operators, which can access a shared storage system.
+Because the storage system is distributed as well, one of the main problems is data consistency and fault tolerance.
+In order to maintain data consistency a gossip protocol is used to propagate updates through the network.
+The storage system supports three operations: read, write, and updateIfValueIs.
+Records are stored with the value and a version number.
+For the identification of the correct storage server to contact about a value, consistent hashing is used.
+For data consistency, operators have to read consistent version of the data, which has to be ensured by the system.
+Because the system also has to provide fault-tolerance, data has to be distributed between storage nodes, and reads have to be redirected.
+The different operators are assigned to workers by a scheduler, and then send from one worker to another after the operator has finished.
 
 
 %------------------------------------------------------------------------- 
@@ -62,7 +72,9 @@ We focused on its design, implementation and evaluation in the project in this p
 
 \SubSection{Design}
 
+
 \SubSection{Implementation}
+
 
 %------------------------------------------------------------------------- 
 \Section{Evaluation}
