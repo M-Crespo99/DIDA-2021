@@ -30,8 +30,13 @@ namespace PCS
                     var client = new Client(keyValuePair.Value);
                     if (!client.liveness())
                     {
-                        idHostStorageToRemove.TryAdd(keyValuePair.Key, keyValuePair.Value);
+                        Thread.Sleep(1000);
+                        if (!client.liveness())
+                        {
+                            idHostStorageToRemove.TryAdd(keyValuePair.Key, keyValuePair.Value);    
+                        }
                     }
+
                 }catch(Exception e){}
                 
             }
