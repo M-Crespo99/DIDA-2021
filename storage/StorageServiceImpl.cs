@@ -38,13 +38,16 @@ namespace storage{
         private int _port;
 
         private int _replicaId;
-        public StorageServerService(int replicaId, string host, int port, int gossipDelay){
-            storage = new Storage(replicaId, true);
+
+        private string _serverName;
+        public StorageServerService(int replicaId, string host, int port, int gossipDelay, string serverName){
+            storage = new Storage(replicaId, true, host, port, serverName);
             this._gossipDelay = gossipDelay;
 
             this._host = host;
             this._port = port;
             this._replicaId = replicaId;
+            this._serverName = serverName;
         }
 
 
@@ -89,29 +92,34 @@ namespace storage{
 
 
             this.mergeLogs(request);
+            //Task.Factory.StartNew(() => this.sendGossipMessages());
 
-            Console.WriteLine("LOG AT {0}:{1}", this._host, this._port);
-            foreach(var entry in this.replicaLog){
-                Console.WriteLine("LOG: " + entry.ToString());
-            }
 
-            try{
-                var keysInLog = this.getKeysInReplicaLog();
-                foreach(var key in keysInLog){
-                    var records = this.filterLogByKey(key);
-                    var orderedRecords = records.OrderBy(record => record._prev);
-                    
-                    foreach(var record in orderedRecords){
-                        if(isStable(record) && !this.executedUpdates.Contains(record._operationIdentifier)){
-                            this.storage.Write(record._operation.key, record._operation.newValue, record, true);
-                            this.executedUpdates.Add(record._operationIdentifier);
+            lock(this.replicaLog){
+                Console.WriteLine("LOG AT {0}:{1}", this._host, this._port);
+
+                foreach(var entry in this.replicaLog){
+                    Console.WriteLine("LOG: " + entry.ToString());
+                }
+
+
+                try{
+                    var keysInLog = this.getKeysInReplicaLog();
+                    foreach(var key in keysInLog){
+                        var records = this.filterLogByKey(key);
+                        var orderedRecords = records.OrderBy(record => record._prev);
+                        
+                        foreach(var record in orderedRecords){
+                            if(isStable(record) && !this.executedUpdates.Contains(record._operationIdentifier)){
+                                this.storage.Write(record._operation.key, record._operation.newValue, record, true);
+                                this.executedUpdates.Add(record._operationIdentifier);
+                            }
                         }
                     }
+                }catch (Exception e){
+                    Console.WriteLine(e.ToString());
                 }
-            }catch (Exception e){
-                Console.WriteLine(e.ToString());
             }
-
             return Task.FromResult(new DIDAStorage.Proto.GossipReply{});
         }
 
@@ -145,6 +153,13 @@ namespace storage{
                                     replicaId = request.Version.ReplicaId
                                     };
                 }
+                var prev = protoToLClock(request.Clock);
+
+
+                //while(prev > this.storage.getValueTS(request.Id) ){
+                    //sleep
+                //}
+
                 DIDARecord record = storage.Read(request.Id, version);
 
                 DIDAStorage.Proto.DIDARecordReply reply = new DIDAStorage.Proto.DIDARecordReply{
@@ -168,9 +183,11 @@ namespace storage{
             var newEntry = this.addToLog(request);
 
             try{
-                Console.WriteLine("LOG AT {0}:{1}", this._host, this._port);
-                foreach(var entry in this.replicaLog){
-                Console.WriteLine("LOG: " + entry.ToString());
+                lock(this.replicaLog){
+                    Console.WriteLine("LOG AT {0}:{1}", this._host, this._port);
+                    foreach(var entry in this.replicaLog){
+                    Console.WriteLine("LOG: " + entry.ToString());
+                }
             }
             } catch (Exception e){
                 Console.WriteLine(e.ToString());
@@ -242,41 +259,47 @@ namespace storage{
 
         private GossipLib.GossipLogRecord addToLog(DIDAStorage.Proto.DIDAWriteRequest request){
             try{
-                int replicaId = this._replicaId;
-                
-                //increment ReplicaTS at replicaID by one
-                this.storage.incrementReplicaTSOnRecord(request.Id);
-
-                var prev = this.protoToLClock(request.Clock);
-                
-                var ts = prev;
-
-                ts.incrementAt(this._replicaId - 1);
-
-                var updateId = request.UniqueID;
-
-                var op = new GossipLib.operation{
-                    key = request.Id,
-                    opType = GossipLib.operationType.WRITE,
-                    versionNumber = this.storage.getNextVersionNumber(request.Id),
-                    newValue = request.Val
-                };
-
-                var replicaTS = this.storage.getReplicaTimestamp(request.Id).DeepCopy();
-
-
-                var newEntry = new GossipLib.GossipLogRecord(replicaId,
-                                                            ts,
-                                                            this.protoToLClock(request.Clock),
-                                                            replicaTS,
-                                                            updateId,
-                                                            op);
-
                 lock(this.replicaLog){
-                    this.replicaLog.Add(newEntry);
-                }
+                    var entries = this.replicaLog.Where(r => r._operationIdentifier == request.UniqueID).ToList();
+                    if(entries.Count != 0){
+                        return entries.First();
+                    }
+                    int replicaId = this._replicaId;
+                    
+                    //increment ReplicaTS at replicaID by one
+                    this.storage.incrementReplicaTSOnRecord(request.Id);
+
+                    var prev = this.protoToLClock(request.Clock);
+                    
+                    var ts = prev;
+
+                    ts.assign(this._replicaId - 1, this.storage.getReplicaTimestamp(request.Id).At(this._replicaId - 1));
+
+                    var updateId = request.UniqueID;
+
+                    var op = new GossipLib.operation{
+                        key = request.Id,
+                        opType = GossipLib.operationType.WRITE,
+                        versionNumber = this.storage.getNextVersionNumber(request.Id),
+                        newValue = request.Val
+                    };
+
+                    var replicaTS = this.storage.getReplicaTimestamp(request.Id).DeepCopy();
+
+
+                    var newEntry = new GossipLib.GossipLogRecord(replicaId,
+                                                                ts,
+                                                                this.protoToLClock(request.Clock),
+                                                                replicaTS,
+                                                                updateId,
+                                                                op);
+
+                    
+                        this.replicaLog.Add(newEntry);
+                    
 
                 return newEntry;
+            }
                         
             }     
             catch (Exception e){
@@ -312,8 +335,9 @@ namespace storage{
                 foreach(var entry in request.Log){
                     var logEntry = ProtoGRecordToGRecord(entry);
                     var replicaTS = this.storage.getReplicaTimestamp(entry.Operation.Key);
-                    if((this.replicaLog.Find(e => e._operationIdentifier == logEntry._operationIdentifier) == null)
+                    if((this.replicaLog.Where(e => e._operationIdentifier == entry.UpdateIdentifier).ToList().Count == 0)
                     && !(protoToLClock(entry.UpdateTS) <= replicaTS)){
+                        Console.WriteLine("Added");
                         this.replicaLog.Add(logEntry);
                         this.storage.getReplicaTimestamp(entry.Operation.Key).merge(protoToLClock(entry.ReplicaTS));
                     }

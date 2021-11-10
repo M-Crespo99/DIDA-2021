@@ -12,6 +12,8 @@ namespace PCS
 {
     public class PcsServiceImpl : PCSServiceBase
     {
+
+        private int storageCount = 0;
         private static readonly int NumProcs = Environment.ProcessorCount;
         private static readonly int ConcurrencyLevel = NumProcs * 2;
 
@@ -37,7 +39,9 @@ namespace PCS
                         }
                     }
 
-                }catch(Exception e){}
+                }catch(Exception e){
+                    Console.WriteLine(e.ToString());
+                }
                 
             }
             
@@ -137,19 +141,23 @@ namespace PCS
                     .Replace("http://", "")
                     .Replace("https://", "")
                     .Split(":")[0];
+                
 
                 var argument = "";
-                if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
-                {
-                    argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);    
-                }
-                else
-                {
-                    argument = String.Format("{0}\\bin\\Debug\\net5.0\\storage.dll {1} {2} {3}", dir, request.Id, request.Url , request.GossipDelay);
-                }
 
-                executeRunCommand("dotnet", argument);
-
+                lock(this){
+                    storageCount++;
+                    if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
+                    {
+                        argument = String.Format("{0}/bin/Debug/net5.0/storage.dll {1} {2} {3} {4}", dir, storageCount, request.Url , request.GossipDelay, request.Id);    
+                    }
+                    else
+                    {
+                        argument = String.Format("{0}\\bin\\Debug\\net5.0\\storage.dll {1} {2} {3} {4}", dir, storageCount, request.Url , request.GossipDelay, request.Id);
+                    }
+                
+                    executeRunCommand("dotnet", argument);
+                }
                 //Make sure all the storages know of the new storage
                 foreach(var entry in IdHostStorage){
                     var client = new Client(entry.Value);
@@ -181,6 +189,9 @@ namespace PCS
             }
             catch (Exception e)
             {
+                lock(this){
+                    storageCount--;
+                }
                 Console.WriteLine(e);
                 return await Task.FromResult(new PCSRunStorageReply {Ok = false});
             }

@@ -64,7 +64,6 @@ namespace worker
                     {
                         if (type.Name == className)
                         {
-                            Console.WriteLine("Found the operator: " + className);
 
                             foundDLL = true;
                             IDIDAOperator operatorFromReflection = (IDIDAOperator) Activator.CreateInstance(type);
@@ -75,7 +74,6 @@ namespace worker
                             Stopwatch stopwatch = new Stopwatch();
                             string newOutput = "";
                             try{
-                                Console.WriteLine("Going to storage");
                                 stopwatch.Start();
                                 StorageProxy proxy = new StorageProxy(this.storageReplicas);
                                 operatorFromReflection.ConfigureStorage(proxy);                            
@@ -285,12 +283,8 @@ namespace worker
         private DIDAStorageNode getStorageFromHash(ulong hash){
             DIDAStorageNode closest = this._storageNodes.First();
 
-            Console.WriteLine("Targe Hash: " + hash);
-
             foreach(DIDAStorageNode node in this._storageNodes){
                 ulong hashOfNode = this.getHash(String.Format("{0}:{1}", node.host, node.port));
-
-                Console.WriteLine(String.Format("{0}:{1} -> {2}", node.host, node.port, hashOfNode));
 
                 if(hashOfNode > hash && hashOfNode < this.getHash(String.Format("{0}:{1}", closest.host, closest.port))){
                     closest = node;

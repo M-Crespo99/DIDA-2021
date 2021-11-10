@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+
 using System.Linq;
 
 
@@ -17,13 +19,22 @@ namespace DIDAStorage
         private int _numberOfReads = 0;
 
         private int _storageCounter = 0;
+        private string _host;
+        private int _port;
+
+        private string _serverName;
 
         private Dictionary<string, List<DIDAValue>> _values = new Dictionary<string, List<DIDAValue>>();
 
-        public Storage(int replicaId, bool debug)
+        private Dictionary<string, int> _versionNumbers = new Dictionary<string, int>();
+
+        public Storage(int replicaId, bool debug, string host, int port, string serverName)
         {
             this._replicaId = replicaId;
             this._debug = debug;
+            this._host = host;
+            this._port = port;
+            this._serverName = serverName;
         }
 
         public DIDARecord Read(string id, DIDAVersion version)
@@ -109,6 +120,7 @@ namespace DIDAStorage
 
                         newVersion.replicaTS = mostRecentVersion.replicaTS;
                         newVersion.versionNumber = record._operation.versionNumber;
+                        this._versionNumbers.TryAdd(id, newVersion.versionNumber);
 
                         valueToWrite.version = newVersion;
 
@@ -120,7 +132,7 @@ namespace DIDAStorage
                         else
                         {
                             //Simply add to the existing versions
-                            currentValues.Add(valueToWrite);
+                            currentValues.Add(valueToWrite);    
                         }
                     }
                     else
@@ -132,7 +144,9 @@ namespace DIDAStorage
                                     versionNumber = record._operation.versionNumber,
                                     replicaTS = record._updateTS,
                                 };
-                        valueToWrite.valueTS = record._updateTS;
+                            valueToWrite.valueTS = record._updateTS;
+                            this._versionNumbers.TryAdd(id, record._operation.versionNumber);
+
 
                         }else{
                             valueToWrite.version = new DIDAVersion
@@ -141,6 +155,7 @@ namespace DIDAStorage
                                 versionNumber = 0,
                                 replicaTS = new GossipLib.LamportClock(this._storageCounter + 1),
                             };
+                            this._versionNumbers.TryAdd(id, 0);
                             valueToWrite.valueTS = new GossipLib.LamportClock(this._storageCounter + 1);
                             valueToWrite.version.replicaTS.incrementAt(this._replicaId - 1);
                             valueToWrite.valueTS.incrementAt(this._replicaId - 1);
@@ -206,9 +221,8 @@ namespace DIDAStorage
 
         private DIDAValue FindMostRecentValue(string id)
         {
-            int maxVersionNumber = this._values[id].Max(value => value.version.versionNumber);
-
-            return this._values[id].Find(value => value.version.versionNumber == maxVersionNumber);
+            var orderdValues = this._values[id].OrderBy(value => value.version).ToList();
+            return orderdValues.Last();
         }
 
 
@@ -244,7 +258,8 @@ namespace DIDAStorage
         {
 
             Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
-            Console.WriteLine("Storage Node {0}:", this._replicaId);
+            Console.WriteLine("Storage Node {0}:", this._serverName);
+            Console.WriteLine("Address: {0}:{1}:", this._host, this._port);
 
             var reply = new DIDAStorage.Proto.DIDAListServerReply();
 
@@ -255,36 +270,38 @@ namespace DIDAStorage
                 Console.ResetColor();
 
             }
-
-            foreach (KeyValuePair<string, List<DIDAStorage.DIDAValue>> currentRecords in this._values)
-            {
-                Console.WriteLine("Record Key: {0}.", currentRecords.Key);
-                var currentCompleteRecord = new DIDAStorage.Proto.DIDACompleteRecord();
-                currentCompleteRecord.Id = currentRecords.Key;
-                foreach (DIDAStorage.DIDAValue currentVersion in currentRecords.Value)
+            lock(this._values){
+                foreach (KeyValuePair<string, List<DIDAStorage.DIDAValue>> currentRecords in this._values)
                 {
-                    if (currentVersion.Equals(currentRecords.Value.Last()))
+                    Console.WriteLine("Record Key: {0}.", currentRecords.Key);
+                    var currentCompleteRecord = new DIDAStorage.Proto.DIDACompleteRecord();
+                    currentCompleteRecord.Id = currentRecords.Key;
+                    var orderdRecords = currentRecords.Value.OrderBy(value => value.version).ToList();
+                    foreach (DIDAStorage.DIDAValue currentVersion in orderdRecords)
                     {
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        Console.WriteLine("--> Most Recent Value:");
-                    }
-
-                    Console.WriteLine("\tValue: {0}.", currentVersion.value);
-                    Console.WriteLine("\tVersion Number: {0}.", currentVersion.version.versionNumber);
-                    Console.WriteLine("\tReplica ID: {0}.", currentVersion.version.replicaId);
-                    Console.ResetColor();
-                    currentCompleteRecord.Versions.Add(new DIDAStorage.Proto.DIDARecordReply
-                    {
-                        Id = currentRecords.Key,
-                        Version = new DIDAStorage.Proto.DIDAVersion
+                        if (currentVersion.Equals(orderdRecords.Last()))
                         {
-                            VersionNumber = currentVersion.version.versionNumber,
-                            ReplicaId = currentVersion.version.replicaId
-                        },
-                        Val = currentVersion.value
-                    });
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("--> Most Recent Value:");
+                        }
+
+                        Console.WriteLine("\tValue: {0}.", currentVersion.value);
+                        Console.WriteLine("\tVersion Number: {0}.", currentVersion.version.versionNumber);
+                        Console.WriteLine("\tReplica ID: {0}.", currentVersion.version.replicaId);
+                        Console.ResetColor();
+                        currentCompleteRecord.Versions.Add(new DIDAStorage.Proto.DIDARecordReply
+                        {
+                            Id = currentRecords.Key,
+                            Version = new DIDAStorage.Proto.DIDAVersion
+                            {
+                                VersionNumber = currentVersion.version.versionNumber,
+                                ReplicaId = currentVersion.version.replicaId
+                            },
+                            Val = currentVersion.value
+                        });
+                    }
+                    reply.Records.Add(currentCompleteRecord);
                 }
-                reply.Records.Add(currentCompleteRecord);
             }
             Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
             return reply;
@@ -323,34 +340,35 @@ namespace DIDAStorage
 
         public void incrementReplicaTSOnRecord(string id)
         {
+            lock(this._values){
+                if (!this._values.ContainsKey(id))
+                {
 
-            if (!this._values.ContainsKey(id))
-            {
+                    this._values.Add(id, new List<DIDAValue>());
 
-                this._values.Add(id, new List<DIDAValue>());
-
+                    lock (this._values[id])
+                    {
+                        DIDAVersion newVersion = new DIDAVersion
+                        {
+                            versionNumber = -1,
+                            replicaId = this._replicaId,
+                            replicaTS = new GossipLib.LamportClock(this._storageCounter + 1)
+                        };
+                        this._versionNumbers.TryAdd(id,0);
+                        this._values[id].Add(new DIDAValue
+                        {
+                            value = "",
+                            valueTS = newVersion.replicaTS,
+                            version = newVersion
+                        });
+                        this._values[id].First().version.replicaTS.incrementAt(this._replicaId - 1);
+                    }
+                    return;
+                }
                 lock (this._values[id])
                 {
-                    DIDAVersion newVersion = new DIDAVersion
-                    {
-                        versionNumber = -1,
-                        replicaId = this._replicaId,
-                        replicaTS = new GossipLib.LamportClock(this._storageCounter + 1)
-                    };
-
-                    this._values[id].Add(new DIDAValue
-                    {
-                        value = "",
-                        valueTS = newVersion.replicaTS,
-                        version = newVersion
-                    });
-                    this._values[id].First().version.replicaTS.incrementAt(this._replicaId - 1);
+                    this.FindMostRecentValue(id).version.replicaTS.incrementAt(this._replicaId - 1);
                 }
-                return;
-            }
-            lock (this._values[id])
-            {
-                this.FindMostRecentValue(id).version.replicaTS.incrementAt(this._replicaId - 1);
             }
         }
 
@@ -378,6 +396,7 @@ namespace DIDAStorage
         {
             Console.WriteLine("%%%%%%%%%%%%%%%%%%%%%");
             Console.WriteLine("Storage Node Status:");
+            Console.WriteLine("\tName: {0}.", this._serverName);
             Console.WriteLine("\tID: {0}.", this._replicaId);
             Console.WriteLine("\tStatus: Running.");
             Console.WriteLine("\tPerformed {0} Read Operations.", this._numberOfReads);
@@ -432,8 +451,12 @@ namespace DIDAStorage
         public int getNextVersionNumber(string id){
             if(this._values.ContainsKey(id)){
                 lock(this._values[id]){
-                    return FindMostRecentValue(id).version.versionNumber + 1;
+                    this._versionNumbers[id]+= 1;
+                    return this._versionNumbers[id];
                 }
+            }
+            else{
+                this._versionNumbers.TryAdd(id, 0);
             }
             return 0;
         }

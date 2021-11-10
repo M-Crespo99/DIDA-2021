@@ -1,0 +1,10 @@
+storage 1 localhost:5001 1000
+storage 2 localhost:5002 1000
+storage 3 localhost:5003 1000
+worker w1 localhost:4001 1000
+worker w2 localhost:4002 1000
+scheduler sch1 localhost:2000
+wait 2000
+client test_record_1 app3
+client test_record_2 app3
+client test_record_3 app3
