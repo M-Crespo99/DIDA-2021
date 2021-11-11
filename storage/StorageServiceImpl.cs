@@ -264,6 +264,8 @@ namespace storage{
                     if(entries.Count != 0){
                         return entries.First();
                     }
+
+                    Console.WriteLine("ADDING TO LOG: ");
                     int replicaId = this._replicaId;
                     
                     //increment ReplicaTS at replicaID by one
@@ -277,10 +279,11 @@ namespace storage{
 
                     var updateId = request.UniqueID;
 
+                    var nextVN = this.storage.getNextVersionNumber(request.Id);
                     var op = new GossipLib.operation{
                         key = request.Id,
                         opType = GossipLib.operationType.WRITE,
-                        versionNumber = this.storage.getNextVersionNumber(request.Id),
+                        versionNumber = nextVN,
                         newValue = request.Val
                     };
 

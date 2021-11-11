@@ -120,6 +120,8 @@ namespace DIDAStorage
 
                         newVersion.replicaTS = mostRecentVersion.replicaTS;
                         newVersion.versionNumber = record._operation.versionNumber;
+                        this._versionNumbers[id] = record._operation.versionNumber;
+
                         this._versionNumbers.TryAdd(id, newVersion.versionNumber);
 
                         valueToWrite.version = newVersion;
@@ -146,6 +148,7 @@ namespace DIDAStorage
                                 };
                             valueToWrite.valueTS = record._updateTS;
                             this._versionNumbers.TryAdd(id, record._operation.versionNumber);
+                            this._versionNumbers[id] = record._operation.versionNumber;
 
 
                         }else{
@@ -451,7 +454,9 @@ namespace DIDAStorage
         public int getNextVersionNumber(string id){
             if(this._values.ContainsKey(id)){
                 lock(this._values[id]){
+                    Console.WriteLine("this._versionNumbers[id]: " + this._versionNumbers[id]);
                     this._versionNumbers[id]+= 1;
+                    Console.WriteLine("this._versionNumbers[id] + 1: " + this._versionNumbers[id]);
                     return this._versionNumbers[id];
                 }
             }
