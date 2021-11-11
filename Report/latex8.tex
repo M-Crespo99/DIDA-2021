@@ -23,9 +23,9 @@
 \title{Design and Implementation of Distributed Application: Project Report}
 
 \author{
-Wallace Garbim\\Instituto Superior Tecnico\\
+Wallace Garbim\\Instituto Superior Tecnico\\wallace.garbim@tecnico.ulisboa.pt
 \and
-Miguel Crespo\\Instituto Superior Tecnico\\
+Miguel Crespo\\Instituto Superior Tecnico\\miguel.crespo@tecnico.ulisboa.pt
 \and
 Florian Ehrenstorfer\\
 Instituto Superior Tecnico\\fehrenstorfer@gmail.com\\
@@ -68,12 +68,31 @@ The different operators are assigned to workers by a scheduler, and then send fr
 
 %------------------------------------------------------------------------- 
 \Section{Solution}
+In the following section, we will describe our proposed solution. \newline
 
-
-\SubSection{Design}
-
-
-\SubSection{Implementation}
+Our system consists of five main processes: The scheduler, worker and storage nodes, and the Puppetmaster and PCS processes.
+The Puppetmaster is the main entry point of our system and controls the startup and workflow of the whole system.
+The PCS enables the Puppetmaster to startup the three different types of nodes remotely.
+Because all three nodes receive their configuration information as command line arguments at startup, the whole system could also be run without the Puppetmaster and PCS.
+The Puppetmaster can be run with single commands in the command line in a loop or by providing a full script, which will be executed by the Puppetmaster. \newline
+To run the Puppetmaster the following command has to be executed inside the Puppetmaster directory:
+\emph{dotnet run}. \newline
+To run the Puppetmaster with a full script the following command has to be executed inside the Puppetmaster directory: 
+\emph{dotnet run < scriptname}.
+scriptname has to include the path to the script. \newline
+The PCS process can be started with \emph{dotnet run} inside the PCS directory.
+It only has to be started once to start multiple other nodes.
+All printed output from the started nodes will be printed in this console.
+The Puppetmaster sends start up requests to the PCS, which then starts worker, storage or scheduler nodes as a new process.
+All other types of requests are also send from the Puppetmaster to PCS, where they are distributed to the relevant nodes. \newline
+The scheduler is responsible for the assignment of operators to workers and the distribution of workload between them.
+For that it stores the number of operators each worker currently works on and assigns the next operator to the worker with the fewest current operators.
+Because of that workers send completion confirmations to the scheduler when they have finish working on one operator. \newline
+Workers receive the chain of operators and execute the operator that was assigned to them, before storing the output in the chain and sending the chain to the next worker in line.
+Since they only receive the name of the operator, workers select the operator with reflection.
+For that the operator .dll file has to be placed inside the \emph{Operator} folder inside the workers directory.
+The workers get the url of all storage nodes and the scheduler from the meta data of the chain.
+\newline
 
 
 %------------------------------------------------------------------------- 
