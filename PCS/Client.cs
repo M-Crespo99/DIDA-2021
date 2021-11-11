@@ -2,6 +2,7 @@ using System;
 using DIDAStorage.Proto;
 using DIDAWorker.Proto;
 using Grpc.Core;
+using System.Collections.Generic;
 using StatusRequest = DIDAStorage.Proto.StatusRequest;
 
 namespace PCS
@@ -122,13 +123,16 @@ namespace PCS
             _channel.ShutdownAsync().Wait();
         }
 
-        public void WriteIntoStorage(string[] lines)
+        public void WriteIntoStorage(string[] lines, int numberOfStorages)
         {
             var client = new DIDAStorageService.DIDAStorageServiceClient(GetConnection());
+
+            var rand = new Random();
             foreach (var line in lines)
             {
                 var idValue = line.Split(",");
-                client.writeAsync(new DIDAWriteRequest {Id = idValue[0], Val = idValue[1]}).GetAwaiter().GetResult();
+                GossipLib.LamportClock lClock = new GossipLib.LamportClock(numberOfStorages);
+                client.writeAsync(new DIDAWriteRequest {Id = idValue[0], Val = idValue[1], Clock = LClockToProto(lClock), UniqueID = rand.Next()}).GetAwaiter().GetResult();
             }
             ShutdownChannel();
         }
@@ -140,5 +144,27 @@ namespace PCS
             client.addStorage(new AddStorageRequest { Host = host, Port = port, Id = id});
             
         }
+        private GossipLib.LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock){
+            List<int> l = new List<int>();
+
+            foreach(var value in protoClock.Values){
+                l.Add(value);
+            }
+
+            return new GossipLib.LamportClock(l);
+        }
+
+        private DIDAStorage.Proto.LamportClock LClockToProto(GossipLib.LamportClock c){
+            DIDAStorage.Proto.LamportClock protoLClock = new DIDAStorage.Proto.LamportClock();
+
+            var l = c.toList();
+
+            foreach(var value in l){
+                protoLClock.Values.Add(value);
+            }
+
+            return protoLClock;
+        }
+
     }
 }

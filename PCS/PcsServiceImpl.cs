@@ -377,9 +377,12 @@ namespace PCS
                     var dir = Environment.CurrentDirectory;
                     string[] lines = File.ReadAllLines(String.Format(dir + "/populate_files/" + request.DataFilePath));
                     var firstStorageUrl = IdHostStorage.Values.First();
+
+
+
                     var client = new Client(firstStorageUrl);
                     
-                    if (lines.Length > 0) { client.WriteIntoStorage(lines); }
+                    if (lines.Length > 0) { client.WriteIntoStorage(lines, IdHostStorage.Count); }
                 }
                 catch (Exception e)
                 {
