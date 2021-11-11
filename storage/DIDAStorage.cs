@@ -26,7 +26,7 @@ namespace DIDAStorage
 
         private Dictionary<string, List<DIDAValue>> _values = new Dictionary<string, List<DIDAValue>>();
 
-        private Dictionary<string, int> _versionNumbers = new Dictionary<string, int>();
+        private ConcurrentDictionary<string, int> _versionNumbers = new ConcurrentDictionary<string, int>();
 
         public Storage(int replicaId, bool debug, string host, int port, string serverName)
         {
@@ -120,9 +120,12 @@ namespace DIDAStorage
 
                         newVersion.replicaTS = mostRecentVersion.replicaTS;
                         newVersion.versionNumber = record._operation.versionNumber;
-                        this._versionNumbers[id] = record._operation.versionNumber;
 
                         this._versionNumbers.TryAdd(id, newVersion.versionNumber);
+
+                        if(this._versionNumbers[id] < record._operation.versionNumber){
+                            this._versionNumbers[id] = record._operation.versionNumber;
+                        }
 
                         valueToWrite.version = newVersion;
 
