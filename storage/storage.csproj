@@ -14,10 +14,10 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <Protobuf Include="../Protos/DIDAStorage.proto" GrpcServices="Server" />
+    <Protobuf Include="../Protos/DIDAStorage.proto" GrpcServices="Both" />
   </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\GossipLib\GossipLib.csproj" />
+          <ProjectReference Include="..\GossipLib\GossipLib.csproj" />
     </ItemGroup>
 </Project>

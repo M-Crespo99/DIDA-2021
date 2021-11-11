@@ -1,8 +1,69 @@
 ﻿using System.Collections.Generic;
+using System;
 
 namespace GossipLib
 {
-    public class LamportClock
+    public enum operationType{
+        READ = 1,
+        WRITE = 2,
+        UPDATE_IF_VALUE_IS = 3,
+    }
+    public struct operation{
+        public string key;
+        public operationType opType;
+
+        public string  newValue;
+
+        public int versionNumber;
+
+        public override string ToString()
+        {
+            return String.Format("< K: {0} V: {1} VN: {2} >", key, newValue,versionNumber);
+        }
+
+    }
+    public class GossipLogRecord{
+        public int _replicaId;
+
+        public LamportClock _updateTS;
+
+        public LamportClock _prev;
+
+        public LamportClock _replicaTS;
+
+        public int _operationIdentifier;
+
+        public operation _operation;
+
+
+        public GossipLogRecord(int replicaId,
+                                LamportClock updateTS,
+                                LamportClock prev,
+                                LamportClock replicaTS,
+                                int operationIdentifier,
+                                operation op){
+            
+
+            this._replicaId = replicaId;
+            this._prev = prev;
+            this._updateTS = updateTS;
+            this._operationIdentifier = operationIdentifier;
+            this._operation = op;
+            this._replicaTS = replicaTS;
+        }
+
+        public override string ToString()
+        {
+            return String.Format("LogRecord: <{0}, {1}, {2}, {3}, {4}> {5}\n", this._replicaId,
+                                                                                _updateTS.ToString(),
+                                                                                _operation,
+                                                                                _prev.ToString(),
+                                                                                _operationIdentifier,
+                                                                                _replicaTS.ToString());
+        }
+
+    }
+    public class LamportClock : IComparable<LamportClock>
     {
         private int _numberOfReplicas {get;}
         private int[] _clock {get;}
@@ -23,6 +84,22 @@ namespace GossipLib
             }
         }
 
+        public LamportClock DeepCopy(){
+            var copy = new LamportClock(this._numberOfReplicas);
+
+
+            for(int i = 0; i < this._numberOfReplicas; i++){
+                copy.assign(i, this.At(i));
+            }
+
+            return copy;
+        }
+
+        public LamportClock(int[] clock){
+            this._clock = clock;
+            this._numberOfReplicas = clock.Length;
+        }
+
 
         public void merge(LamportClock otherClock){
             for(int i = 0; i < this._numberOfReplicas; i++){
@@ -35,6 +112,14 @@ namespace GossipLib
             }
         }
 
+        public int CompareTo(LamportClock that){
+            if(this < that){
+                return 0;
+            }else if(this > that){
+                return 1;
+            }
+            return 1;
+        }
         public int assign(int position, int newValue){
             if(position > this._numberOfReplicas || position < 0){
                 return -1; 
@@ -61,7 +146,7 @@ namespace GossipLib
             foreach(int i in this._clock){
                 str += i.ToString() + " ";
             }
-            return str + " ]";
+            return str + "]";
         }
 
         public int At(int i){
@@ -91,6 +176,23 @@ namespace GossipLib
         public static bool operator <=(LamportClock l1, LamportClock l2) {
             for(int i = 0; i < l1._numberOfReplicas; i++){
                 if((l2.At(i) != -1) && (l1.At(i) > l2.At(i))){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static bool operator <(LamportClock l1, LamportClock l2) {
+            for(int i = 0; i < l1._numberOfReplicas; i++){
+                if((l2.At(i) != -1) && (l1.At(i) > l2.At(i))){
+                    return false;
+                }
+            }
+            return true;
+        }
+        public static bool operator >(LamportClock l1, LamportClock l2) {
+            for(int i = 0; i < l1._numberOfReplicas; i++){
+                if((l2.At(i) != -1) && (l1.At(i) < l2.At(i))){
                     return false;
                 }
             }

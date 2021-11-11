@@ -9,13 +9,15 @@ namespace storage
         private static int port;
         private static int server_id = 0; 
 
+        private static string _serverName = "";
+
         private static int gossip_delay = 0;
         static void ShowUsage(){
             Console.WriteLine("Usage: ./storage server_id URL gossip_delay");
         }
         static bool ValidateInputArguments(string[] args){
 
-            if(args.Length != 3 ){
+            if(args.Length != 4 ){
                 return false;
             }
 
@@ -53,6 +55,7 @@ namespace storage
                 return false;
             }
 
+            _serverName = args[3];
 
             return true;
         }
@@ -64,12 +67,13 @@ namespace storage
                 return 1;
             }   
             Server server = new Server{
-                Services = {DIDAStorage.Proto.DIDAStorageService.BindService(new StorageServerService(server_id, host, port, gossip_delay))},
+                Services = {DIDAStorage.Proto.DIDAStorageService.BindService(new StorageServerService(server_id, host, port, gossip_delay, _serverName))},
                 Ports = { new ServerPort(host, port, ServerCredentials.Insecure) }
             };
 
             server.Start();
             Console.WriteLine("Storage Server Started.");
+            Console.WriteLine("Server Name: " + _serverName);
             Console.WriteLine("Server ID: " + server_id);
 
             Console.WriteLine("Gossip Delay: " + gossip_delay);

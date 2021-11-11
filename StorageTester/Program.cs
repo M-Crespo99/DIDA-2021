@@ -13,7 +13,7 @@ namespace StorageTester
                 return;
             }
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-            StorageFrontend.StorageFrontend frontend = new StorageFrontend.StorageFrontend("localhost", Int32.Parse(args[0]), true);
+            StorageFrontend.StorageFrontend frontend = new StorageFrontend.StorageFrontend("localhost", Int32.Parse(args[0]), 4, true);
             Console.Write("> ");
             string input = "";
             while((input = Console.ReadLine()) != "quit" && input != null){
@@ -51,6 +51,9 @@ namespace StorageTester
                 else if(parts[0] == "debug" && parts.Length == 1){
                     var reply = frontend.toogleDebug();
                     Console.WriteLine(reply.Result.DebugStatus);
+                }
+                else if(parts[0] == "set" && parts.Length == 2){
+                    frontend = new StorageFrontend.StorageFrontend("localhost", Int32.Parse(args[0]), Int32.Parse(parts[1]), true);
                 }
                 else if(parts[0] == "populate" && parts.Length == 2){
                     var file = parts[1];

@@ -62,6 +62,8 @@ message PCSRunStorageRequest {
     int32 gossip_delay = 2;
     bool debug = 3;
     string url = 4;
+
+    string name = 5;
 }
 
 message PCSRunStorageReply {

@@ -21,7 +21,7 @@ namespace worker
     {
         private String workerId;
         private int gossipDelay;
-        
+
         List<DIDAStorageNode> storageReplicas = new List<DIDAStorageNode>();
 
 
@@ -36,7 +36,8 @@ namespace worker
 
         private int _totalTime = 0;
 
-        public WorkerServiceImpl(String id, int gossipDelay){
+        public WorkerServiceImpl(String id, int gossipDelay)
+        {
             this.workerId = id;
             this.gossipDelay = gossipDelay;
         }
@@ -52,7 +53,7 @@ namespace worker
             string currWorkingDir = Directory.GetCurrentDirectory();
             var argument = Environment.CurrentDirectory.
                     Replace("PuppetMaster", "worker").Replace("PCS", "worker");
-            string dllDirectory =  String.Format("{0}/Operators/", argument);
+            string dllDirectory = String.Format("{0}/Operators/", argument);
 
             foreach (string filename in Directory.EnumerateFiles(dllDirectory))
             {
@@ -64,28 +65,30 @@ namespace worker
                     {
                         if (type.Name == className)
                         {
-                            Console.WriteLine("Found the operator: " + className);
 
                             foundDLL = true;
-                            IDIDAOperator operatorFromReflection = (IDIDAOperator) Activator.CreateInstance(type);
-                            
+                            IDIDAOperator operatorFromReflection = (IDIDAOperator)Activator.CreateInstance(type);
+
                             var metaRecord = ConvertToWorkerMetaRecord(request.Meta);
                             string previousOutput = request.Next == 0 ? "" : request.Chain[request.Next - 1].Output;
-                            
+
                             Stopwatch stopwatch = new Stopwatch();
                             string newOutput = "";
-                            try{
-                                Console.WriteLine("Going to storage");
+                            StorageProxy proxy = new StorageProxy(this.storageReplicas, metaRecord);
+                            try
+                            {
                                 stopwatch.Start();
-                                StorageProxy proxy = new StorageProxy(this.storageReplicas);
-                                operatorFromReflection.ConfigureStorage(proxy);                            
+                                operatorFromReflection.ConfigureStorage(proxy);
                                 newOutput = operatorFromReflection.ProcessRecord(metaRecord, request.Input, previousOutput);
                                 stopwatch.Stop();
 
-                            }catch(RpcException e){
+                            }
+                            catch (RpcException e)
+                            {
                                 Console.WriteLine(e.Message);
                             }
-                            catch(Exception e){
+                            catch (Exception e)
+                            {
                                 Console.WriteLine("ERROR EXECUTING OPERATOR: ");
                                 Console.WriteLine(e.ToString());
                             }
@@ -108,15 +111,22 @@ namespace worker
                                 GrpcChannel channel = GrpcChannel.ForAddress("http://" + nextWorkerAssignment.Host + ":" + nextWorkerAssignment.Port);
                                 var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);
                                 var newRequest = new DIDARequest(request);
+                                this.addNewMetaData(newRequest, proxy._meta);
+                                Console.WriteLine("REQUEST: ");
 
-                                client.workOnOperatorAsync(newRequest);
+                                Console.WriteLine(newRequest.ToString());
+
+                                Console.WriteLine("################");
+
+                                _ = client.workOnOperatorAsync(newRequest);
                             }
                         }
                     }
                 }
             }
 
-            if(!foundDLL){
+            if (!foundDLL)
+            {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("ERROR: Could not locate operator: " + className);
                 Console.ResetColor();
@@ -125,6 +135,25 @@ namespace worker
             return await Task.FromResult(new DIDAReply());
         }
 
+
+        private void addNewMetaData(DIDARequest request, DIDAMeta meta){
+            foreach(var k in meta._keys){
+                if(request.Meta.AccessedKeys.Contains(k)){
+                    var index = meta._keys.IndexOf(k);
+                    request.Meta.AccesedVersions[index] = new DIDAWorker.Proto.DIDAVersion{
+                        VersionNumber = meta._versions[index].VersionNumber,
+                        ReplicaId = meta._versions[index].ReplicaId
+                    };
+                }else{
+                    var index = meta._keys.IndexOf(k);
+                    request.Meta.AccessedKeys.Add(k);
+                    request.Meta.AccesedVersions.Add(new DIDAWorker.Proto.DIDAVersion{
+                        VersionNumber = meta._versions[index].VersionNumber,
+                        ReplicaId = meta._versions[index].ReplicaId
+                    });
+                }
+            }
+        }
         private void SendOperatorInfoToScheduler(String schedulerHost, int schedulerPort, String className, Stopwatch stopwatch)
         {
             GrpcChannel channel = GrpcChannel.ForAddress(String.Format("http://{0}:{1}", schedulerHost, schedulerPort));
@@ -136,7 +165,7 @@ namespace worker
                 WorkerId = this.workerId
             });
         }
-        
+
         private void StoreOperatorInformationInDict(string className, Stopwatch stopwatch)
         {
             int elapsedTime = stopwatch.Elapsed.Milliseconds;
@@ -151,7 +180,8 @@ namespace worker
                 operatorDictionary[className] = new Tuple<int, int>(1, elapsedTime);
             }
 
-            lock(this){
+            lock (this)
+            {
                 this._totalTime += elapsedTime;
             }
         }
@@ -176,7 +206,7 @@ namespace worker
             String resultString = String.Format("Operator {0} was executed with the output {1}", classname, output);
             GrpcChannel channel = GrpcChannel.ForAddress("http://" + debugHost + ":" + debugPort);
             var client = new PuppetMasterService.PuppetMasterServiceClient(channel);
-            client.receiveDebugInfoAsync(new DebugInfoRequest {Info = resultString});
+            client.receiveDebugInfoAsync(new DebugInfoRequest { Info = resultString });
         }
 
         public async Task<LivenessCheckReply> livenessCheck(LivenessCheckRequest request, ServerCallContext context)
@@ -184,24 +214,31 @@ namespace worker
             Console.WriteLine("## Liveness check for worker##");
             Console.WriteLine(request.ToString());
             Console.WriteLine("## ------ ##");
-            return await Task.FromResult(new LivenessCheckReply{Ok = true});
+            return await Task.FromResult(new LivenessCheckReply { Ok = true });
         }
 
-        private DIDAWorker.DIDAMetaRecord ConvertToWorkerMetaRecord(DIDAWorker.Proto.DIDAMetaRecord metaRecord)
+        private DIDAMeta ConvertToWorkerMetaRecord(DIDAWorker.Proto.DIDAMetaRecord metaRecord)
         {
-            return new DIDAWorker.DIDAMetaRecord()
-            {
-                Id = metaRecord.Id
-            };
+            return new DIDAMeta(metaRecord);
         }
 
-        private DIDAWorker.Proto.DIDAMetaRecord ConvertToProtoMetaRecord(DIDAWorker.DIDAMetaRecord metaRecord)
+        private DIDAWorker.Proto.DIDAMetaRecord ConvertToProtoMetaRecord(DIDAMeta meta)
         {
-            return new DIDAWorker.Proto.DIDAMetaRecord()
-            {
-                Id = metaRecord.Id
-                
-            };
+            DIDAWorker.Proto.DIDAMetaRecord protoMetaRecord = new DIDAWorker.Proto.DIDAMetaRecord();
+            protoMetaRecord.Id = meta.Id;
+
+            foreach(var v in meta._versions){
+                protoMetaRecord.AccesedVersions.Add(new DIDAWorker.Proto.DIDAVersion{
+                    VersionNumber = v.VersionNumber,
+                    ReplicaId = v.ReplicaId
+                });
+            }
+
+            foreach(var k in meta._keys){
+                protoMetaRecord.AccessedKeys.Add(k);
+            }
+
+            return protoMetaRecord;
         }
         public override Task<DebugReply> debug(DebugRequest request, ServerCallContext context)
         {
@@ -212,20 +249,20 @@ namespace worker
                 debugPort = request.Port;
             }
 
-            return Task.FromResult(new DebugReply{Ok = true});
+            return Task.FromResult(new DebugReply { Ok = true });
         }
 
         public override Task<StatusReply> status(StatusRequest request, ServerCallContext context)
-        {   
+        {
             printStatusOnConsole();
-            return Task.FromResult<StatusReply>(new StatusReply{Ok = true});
+            return Task.FromResult<StatusReply>(new StatusReply { Ok = true });
         }
 
         public override Task<ListServerReply> listServer(ListServerRequest request, ServerCallContext context)
         {
             printStatusOnConsole();
-            var operatorArray = operatorDictionary.Select(op => new DIDAWorkerListDetails{ OperatorName = op.Key, Executions = op.Value.Item1, TotalTime = op.Value.Item2}).ToArray();
-            return Task.FromResult(new ListServerReply { Details = { operatorArray }});
+            var operatorArray = operatorDictionary.Select(op => new DIDAWorkerListDetails { OperatorName = op.Key, Executions = op.Value.Item1, TotalTime = op.Value.Item2 }).ToArray();
+            return Task.FromResult(new ListServerReply { Details = { operatorArray } });
         }
 
         private void printStatusOnConsole()
@@ -236,120 +273,219 @@ namespace worker
             Console.WriteLine("Number of operators executed: " + operatorCounter);
             foreach (var op in operatorDictionary)
             {
-                Console.WriteLine("Operator {0} was executed {1} times with an average computation time of {2}", op.Key, op.Value.Item1, ((float) op.Value.Item2)/op.Value.Item1 );
+                Console.WriteLine("Operator {0} was executed {1} times with an average computation time of {2}", op.Key, op.Value.Item1, ((float)op.Value.Item2) / op.Value.Item1);
             }
-            Console.WriteLine("-----------------------"); 
+            Console.WriteLine("-----------------------");
         }
     }
 
-    public class StorageProxy : IDIDAStorage{
-        StorageFrontend.StorageFrontend _frontend;
+    public class StorageProxy : IDIDAStorage
+    {
 
-        int[] _lamportClock;
+        StorageFrontend.StorageFrontend _frontend;
 
         DIDAStorageNode _storageNode;
 
         List<DIDAStorageNode> _storageNodes;
-        public StorageProxy(List<DIDAStorageNode> storageNodes){
+
+        public DIDAMeta _meta;
+        public StorageProxy(List<DIDAStorageNode> storageNodes, DIDAMeta meta)
+        {
             this._storageNodes = storageNodes;
-            this._lamportClock = new int[this._storageNodes.Count];
+            this._meta = meta;
         }
 
-
-        private ulong getHash(string str){
-            MD5 md5Hasher = MD5.Create();
-            var hashed = md5Hasher.ComputeHash(Encoding.UTF8.GetBytes(str));
-            return BitConverter.ToUInt64(hashed, 0);
+        //Knuth hash.
+        private ulong getHash(string str)
+        {
+            {
+                UInt64 hashedValue = 3074457345618258791ul;
+                for (int i = 0; i < str.Length; i++)
+                {
+                    hashedValue += str[i];
+                    hashedValue *= 3074457345618258799ul;
+                }
+                return hashedValue;
+            }
         }
-        private DIDAStorageNode locateFunction(string idToRead){
+        private DIDAStorageNode locateFunction(string idToRead)
+        {
 
 
             var hash = this.getHash(idToRead);
 
             var node = this.getStorageFromHash(hash);
 
-            Console.WriteLine("WORKER HASH NODE: ");
-            Console.WriteLine("Input: {0} -> {1}.", idToRead, hash);
-            Console.WriteLine("Node Found:\nID: {0}\n{1}:{2}", node.serverId, node.host, node.port);
-            Console.WriteLine("HASH OF NODE: ", node.GetHashCode());
-
-            return new DIDAWorker.DIDAStorageNode{
+            return new DIDAWorker.DIDAStorageNode
+            {
                 host = node.host,
                 serverId = node.serverId,
                 port = node.port
             };
         }
 
-        private DIDAStorageNode getStorageFromHash(ulong hash){
+        private DIDAStorageNode getStorageFromHash(ulong hash)
+        {
             DIDAStorageNode closest = this._storageNodes.First();
 
-            foreach(DIDAStorageNode node in this._storageNodes){
+            foreach (DIDAStorageNode node in this._storageNodes)
+            {
                 ulong hashOfNode = this.getHash(String.Format("{0}:{1}", node.host, node.port));
-                if(hashOfNode > hash && hashOfNode < this.getHash(String.Format("{0}:{1}", closest.host, closest.port))){
+
+                if (hashOfNode > hash && hashOfNode < this.getHash(String.Format("{0}:{1}", closest.host, closest.port)))
+                {
                     closest = node;
                 }
             }
             return closest;
         }
-        public DIDAWorker.DIDAVersion write(DIDAWriteRequest request){
+        public DIDAWorker.DIDAVersion write(DIDAWriteRequest request)
+        {
             this._storageNode = this.locateFunction(request.Id);
 
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port, this._storageNodes.Count);
+
+
 
             var reply = this._frontend.Write(request.Id, request.Val);
 
-            return new DIDAWorker.DIDAVersion{
+
+            this._meta.addAccessed(request.Id, reply.VersionNumber, reply.ReplicaId);
+
+
+
+            return new DIDAWorker.DIDAVersion
+            {
                 VersionNumber = reply.VersionNumber,
                 ReplicaId = reply.ReplicaId
             };
         }
 
-        public DIDAWorker.DIDAVersion updateIfValueIs(DIDAUpdateIfRequest request){
+        public DIDAWorker.DIDAVersion updateIfValueIs(DIDAUpdateIfRequest request)
+        {
             this._storageNode = this.locateFunction(request.Id);
 
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port, this._storageNodes.Count);
 
             var reply = this._frontend.UpdateIfValueIs(request.Id, request.Oldvalue, request.Newvalue);
-            
-            if(reply != null){
-                return new DIDAWorker.DIDAVersion{
+
+            if (reply != null)
+            {
+                return new DIDAWorker.DIDAVersion
+                {
                     VersionNumber = reply.VersionNumber,
                     ReplicaId = reply.ReplicaId
                 };
 
-            }else{
-                return new DIDAWorker.DIDAVersion{
+            }
+            else
+            {
+                return new DIDAWorker.DIDAVersion
+                {
                     VersionNumber = -1,
                     ReplicaId = -1
-                }; 
+                };
             }
 
         }
 
-        public DIDARecordReply read(DIDAReadRequest request){
+        public DIDARecordReply read(DIDAReadRequest request)
+        {
             this._storageNode = this.locateFunction(request.Id);
 
-            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port);
+            this._frontend = new StorageFrontend.StorageFrontend(this._storageNode.host, this._storageNode.port, this._storageNodes.Count);
 
-            var reply = this._frontend.Read(request.Id, request.Version.VersionNumber, request.Version.ReplicaId);
-            
-            if(reply == null){
-                return new DIDAWorker.DIDARecordReply{
-                    Version = new DIDAWorker.DIDAVersion{
+            var lastVersion = this._meta.getLastAccessedVersion(request.Id);
+
+            DIDAStorage.Proto.DIDARecordReply reply;
+
+            if(lastVersion.VersionNumber == -1){
+                reply = this._frontend.Read(request.Id, request.Version.VersionNumber, request.Version.ReplicaId);
+            }else{
+                reply = this._frontend.Read(request.Id, lastVersion.VersionNumber, lastVersion.ReplicaId);
+            }
+
+
+            if (reply == null)
+            {
+                return new DIDAWorker.DIDARecordReply
+                {
+                    Version = new DIDAWorker.DIDAVersion
+                    {
                         VersionNumber = -1,
                         ReplicaId = -1
                     }
                 };
             }
 
-            return new DIDAWorker.DIDARecordReply{
+            this._meta.addAccessed(request.Id, reply.Version.VersionNumber, reply.Version.ReplicaId);
+
+            return new DIDAWorker.DIDARecordReply
+            {
                 Id = reply.Id,
-                Version = new DIDAWorker.DIDAVersion{
+                Version = new DIDAWorker.DIDAVersion
+                {
                     VersionNumber = reply.Version.VersionNumber,
                     ReplicaId = reply.Version.ReplicaId
                 },
                 Val = reply.Val
             };
+        }
+    }
+
+    public class DIDAMeta : DIDAWorker.DIDAMetaRecord
+    {
+        public List<DIDAWorker.DIDAVersion> _versions = new List<DIDAWorker.DIDAVersion>();
+        public List<string> _keys = new List<string>();
+
+        public DIDAMeta(DIDAWorker.Proto.DIDAMetaRecord meta)
+        {
+            this.Id = meta.Id;
+            foreach (var v in meta.AccesedVersions)
+            {
+                this._versions.Add(new DIDAWorker.DIDAVersion
+                {
+                    VersionNumber = v.VersionNumber,
+                    ReplicaId = v.ReplicaId
+                });
+            }
+            foreach (var k in meta.AccessedKeys)
+            {
+                this._keys.Add(k);
+            }
+        }
+
+        public void addAccessed(string id, int vNumber, int rId)
+        {
+            if (!this._keys.Contains(id))
+            {
+                this._keys.Add(id);
+                this._versions.Add(new DIDAWorker.DIDAVersion
+                {
+                    VersionNumber = vNumber,
+                    ReplicaId = rId
+                });
+            }
+            else
+            {
+                this._versions[this._keys.IndexOf(id)] = new DIDAWorker.DIDAVersion
+                {
+                    VersionNumber = vNumber,
+                    ReplicaId = rId
+                };
+            }
+        }
+
+
+        public DIDAWorker.DIDAVersion getLastAccessedVersion(string id){
+            if(this._keys.Contains(id)){
+                return this._versions[this._keys.IndexOf(id)];
+            }else{
+                return new DIDAWorker.DIDAVersion{
+                    VersionNumber = -1,
+                    ReplicaId = -1
+                };
+            }
         }
     }
 }
