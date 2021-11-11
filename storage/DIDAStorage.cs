@@ -167,10 +167,6 @@ namespace DIDAStorage
                             valueToWrite.valueTS.incrementAt(this._replicaId - 1);
                         }
 
-                        lock (this)
-                        {
-                            this._numberOfWrites++;
-                        }
                         currentValues.Add(valueToWrite);
                     }
                 }
@@ -179,6 +175,11 @@ namespace DIDAStorage
                     Console.WriteLine("--> New Record Written: ");
                     Console.WriteLine("ID: " + id);
                     Console.WriteLine(valueToWrite);
+                }
+
+                lock (this)
+                {
+                    this._numberOfWrites++;
                 }
                 return valueToWrite.version;
             }
