@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=pdflatex 2020.8.10)  12 NOV 2021 21:28
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=pdflatex 2020.8.10)  12 NOV 2021 22:59
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -92,10 +92,10 @@ Underfull \hbox (badness 10000) in paragraph at lines 73--95
 ]
 [2] [3]
 
-LaTeX Warning: Citation `ex1' undefined on input line 235.
+LaTeX Warning: Citation `ex1' undefined on input line 245.
 
 
-LaTeX Warning: Citation `ex2' undefined on input line 235.
+LaTeX Warning: Citation `ex2' undefined on input line 245.
 
 No file latex8.bbl.
 [4
@@ -119,7 +119,7 @@ xlive/2020/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/tex
 live/2020/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2020/
 texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2020/texmf-dist
 /fonts/type1/urw/times/utmri8a.pfb>
-Output written on latex8.pdf (4 pages, 79379 bytes).
+Output written on latex8.pdf (4 pages, 80300 bytes).
 PDF statistics:
  38 PDF objects out of 1000 (max. 8388607)
  26 compressed objects within 1 object stream

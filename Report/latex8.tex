@@ -211,11 +211,9 @@ That indicates a 17.8\% increase in runtime in the event of a crash of a storage
 \SubSection{Best Case Scenario}
 For our system the best case scenario consists of operators that all roughly operate for the same time and no failure of storage nodes.
 Because the scheduler assigns operators to workers with the fewest active ones, if there is a big difference between the run time of operators, the scheduling can operate inefficient.
-To compare this scenario we will run two cases: one normal execution and one where one operator takes a lot longer than the other one.
-For the second case we will force one operator from the checkpoint to sleep for some period of time to increase its runtime.
-Therefor in the finally results we have to account for that time.
-A full execution without delay takes 5448 milliseconds.
-
+One example of a best case is the execution of the checkpoint files.
+Here the full execution takes in total 2216 milliseconds.
+The execution time represents the time from when the scheduler executes the first client command to the completion and confirmation of the last operator.
 
 
 %------------------------------------------------------------------------- 
@@ -239,7 +237,9 @@ the nodes known by any node to the ones on its group.
 
 %------------------------------------------------------------------------- 
 \Section{Conclusion}
-
+In this paper we presented a distributed function-as-a-service system that consists of scheduler, worker, and storage nodes.
+The scheduler dynamically distributes the workload between workers, and the storage nodes replicate data and provide data consistency between them.
+The evaluation showed that our system works, while also discussing its shortcomings.
 
 %------------------------------------------------------------------------- 
 \nocite{ex1,ex2}
