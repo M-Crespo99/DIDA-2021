@@ -1,0 +1,16 @@
+scheduler sc1 http://localhost:2000
+storage 1 http://localhost:5001 0
+storage 2 http://localhost:5002 0
+storage 3 http://localhost:5003 0
+storage 4 http://localhost:5004 0
+worker  w1 http://localhost:4001 0
+worker  w2 http://localhost:4002 0
+wait 2000
+populate app2_data
+wait 1000
+client 23 app4
+wait 2000
+client 13 app4
+client 13 app4
+wait 2000
+listGlobal

@@ -1,47 +1,45 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021/Arch Linux) (preloaded format=pdflatex 2021.11.12)  12 NOV 2021 16:27
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=pdflatex 2020.8.10)  12 NOV 2021 21:28
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**/home/miguelcrespo/Documents/Tecnico/4Ano/DAD/DIDA-2021/Report/latex8.tex
-(/home/miguelcrespo/Documents/Tecnico/4Ano/DAD/DIDA-2021/Report/latex8.tex
-LaTeX2e <2020-10-01> patch level 4
-L3 programming layer <2021-02-18> (/usr/share/texmf-dist/tex/latex/base/article.cls
-Document Class: article 2020/04/10 v1.4m Standard LaTeX document class
-(/usr/share/texmf-dist/tex/latex/base/size10.clo
-File: size10.clo 2020/04/10 v1.4m Standard LaTeX file (size option)
+**latex8.tex
+(./latex8.tex
+LaTeX2e <2020-02-02> patch level 5
+L3 programming layer <2020-03-06>
+(/usr/local/texlive/2020/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2019/12/20 v1.4l Standard LaTeX document class
+(/usr/local/texlive/2020/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2019/12/20 v1.4l Standard LaTeX file (size option)
 )
-\c@part=\count179
-\c@section=\count180
-\c@subsection=\count181
-\c@subsubsection=\count182
-\c@paragraph=\count183
-\c@subparagraph=\count184
-\c@figure=\count185
-\c@table=\count186
+\c@part=\count167
+\c@section=\count168
+\c@subsection=\count169
+\c@subsubsection=\count170
+\c@paragraph=\count171
+\c@subparagraph=\count172
+\c@figure=\count173
+\c@table=\count174
 \abovecaptionskip=\skip47
 \belowcaptionskip=\skip48
-\bibindent=\dimen138
-) (/home/miguelcrespo/Documents/Tecnico/4Ano/DAD/DIDA-2021/Report/latex8.sty
+\bibindent=\dimen134
+) (./latex8.sty
 IEEE 8.5 x 11-Inch Proceedings Style `latex8.sty'.
 \@ctmp=\skip49
 \@figindent=\skip50
-) (/usr/share/texmf-dist/tex/latex/psnfss/times.sty
-Package: times 2020/03/25 PSNFSS-v9.3 (SPQR) 
+) (/usr/local/texlive/2020/texmf-dist/tex/latex/psnfss/times.sty
+Package: times 2005/04/12 PSNFSS-v9.2a (SPQR) 
 )
-LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 21.
- (/usr/share/texmf-dist/tex/latex/psnfss/ot1ptm.fd
-File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
-) (/usr/share/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
-File: l3backend-pdftex.def 2021-03-18 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count187
-\l__pdf_internal_box=\box47
+(/usr/local/texlive/2020/texmf-dist/tex/latex/l3backend/l3backend-pdfmode.def
+File: l3backend-pdfmode.def 2020-03-12 L3 backend support: PDF mode
+\l__kernel_color_stack_int=\count175
+\l__pdf_internal_box=\box45
 )
 
 LaTeX Warning: Unused global option(s):
     [times].
 
-(/home/miguelcrespo/Documents/Tecnico/4Ano/DAD/DIDA-2021/Report/latex8.aux)
+(./latex8.aux)
 \openout1 = `latex8.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 21.
@@ -58,6 +56,11 @@ LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 21.
 LaTeX Font Info:    ... okay on input line 21.
 LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 21.
 LaTeX Font Info:    ... okay on input line 21.
+LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 2
+1.
+ (/usr/local/texlive/2020/texmf-dist/tex/latex/psnfss/ot1ptm.fd
+File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
+)
 LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <12> on input line 38.
 LaTeX Font Info:    External font `cmex10' loaded for size
@@ -69,34 +72,57 @@ Underfull \hbox (badness 10000) in paragraph at lines 71--72
 
  []
 
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 81.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 81.
 
-Underfull \hbox (badness 1168) in paragraph at lines 73--94
+Underfull \hbox (badness 1168) in paragraph at lines 73--95
 \OT1/ptm/m/n/10 com-mand has to be ex-e-cuted in-side the Pup-pet-mas-ter
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 73--94
+Underfull \hbox (badness 10000) in paragraph at lines 73--95
 
  []
 
-[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
+[1{/usr/local/texlive/2020/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 
-] [2] (/home/miguelcrespo/Documents/Tecnico/4Ano/DAD/DIDA-2021/Report/latex8.bbl) [3] (/home/miguelcrespo/Documents/Tecnico/4Ano/DAD/DIDA-2021/Report/latex8.aux) ) 
+]
+[2] [3]
+
+LaTeX Warning: Citation `ex1' undefined on input line 235.
+
+
+LaTeX Warning: Citation `ex2' undefined on input line 235.
+
+No file latex8.bbl.
+[4
+
+] (./latex8.aux)
+
+LaTeX Warning: There were undefined references.
+
+ ) 
 Here is how much of TeX's memory you used:
- 490 strings out of 478994
- 8865 string characters out of 5864750
- 306138 words of memory out of 5000000
- 18024 multiletter control sequences out of 15000+600000
- 420518 words of font info for 55 fonts, out of 8000000 for 9000
+ 460 strings out of 480608
+ 7493 string characters out of 5903630
+ 250610 words of memory out of 5000000
+ 16406 multiletter control sequences out of 15000+600000
+ 546157 words of font info for 48 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 44i,7n,50p,297b,225s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-/dvips/base/8r.enc}</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on /home/miguelcrespo/Documents/Tecnico/4Ano/DAD/DIDA-2021/Report/latex8.pdf (3 pages, 71439 bytes).
+ 25i,7n,21p,283b,223s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/local/texlive/2020/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/t
+exlive/2020/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/te
+xlive/2020/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/tex
+live/2020/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2020/
+texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2020/texmf-dist
+/fonts/type1/urw/times/utmri8a.pfb>
+Output written on latex8.pdf (4 pages, 79379 bytes).
 PDF statistics:
- 31 PDF objects out of 1000 (max. 8388607)
- 21 compressed objects within 1 object stream
+ 38 PDF objects out of 1000 (max. 8388607)
+ 26 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

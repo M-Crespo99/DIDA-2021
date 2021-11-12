@@ -78,13 +78,14 @@ The Puppetmaster can be run with single commands in the command line in a loop o
 To run the Puppetmaster the following command has to be executed inside the Puppetmaster directory:
 \emph{dotnet run}. \newline
 To run the Puppetmaster with a full script the following command has to be executed inside the Puppetmaster directory: 
-\emph{dotnet run < scriptname}.
+\emph{dotnet run $<$ scriptname}.
 scriptname has to include the path to the script. \newline
 The PCS process can be started with \emph{dotnet run} inside the PCS directory.
 It only has to be started once to start multiple other nodes.
 All printed output from the started nodes will be printed in this console.
 The Puppetmaster sends start up requests to the PCS, which then starts worker, storage or scheduler nodes as a new process.
-All other types of requests are also sent from the Puppetmaster to PCS, where they are distributed to the relevant nodes. \newline
+All other types of requests are also sent from the Puppetmaster to PCS, where they are distributed to the relevant nodes. 
+In order to achieve this the PCS stores the information of all its created nodes. \newline
 The scheduler is responsible for the assignment of operators to workers and the distribution of workload between them.
 Workers receive the chain of operators and execute the operator that was assigned to them, before storing the output in the chain and sending the chain to the next worker in line.
 Since they only receive the name of the operator, workers select the operator with reflection.
@@ -99,10 +100,14 @@ The scheduler is responsible for the assignment of operators to workers and the 
 
 
 We first opted for a simple round-robin solution to the scheduling problem, meaning that the operators were assigned one by one, in a round-robin fashion.
+This was a simple solution at first, but with some big problems.
+The scheduler was assigning operators equally without respecting if the worker has already finished or was still working on operators. 
+Because of that, workers that were still executing operators could get new operators assigned even though another worker was free.
+Because of this flaw, we decide to implement a better scheduling algoritmn.
 
-On our second implementation, we decided to take into account the amount of work that each worker had done and assigned the next operator to the worker that
-had done the least amount of work. Because of this, workers send completion confirmations to the scheduler when they have finish working on one operator, and the scheduler 
-keeps track of the amount of time each worker has worker for, resulting in a better load balancing between the available workers.
+On our second implementation, we decided to take into account the amount of work that each worker had done and assigned the next operator to the worker that had done the least amount of work. 
+Because of this, workers send completion confirmations to the scheduler when they have finish working on one operator, and the scheduler keeps track of the amount of operators each worker is working on, resulting in a better load balancing between the available workers.
+Therefore the scheduler always assigns the next operator to the worker who currently works on the least amount of operators.
 
 
 \subsection{Storage Implementation Overview}
@@ -184,13 +189,33 @@ If a replica fails before it can send any new updates that it might have gotten 
 In this section we will evaluate our solution with a baseline scenario, as well as best and worst cases.
 
 \SubSection{Baseline}
-For the Baseline evaluation of our system we use a modified version of the Puppetmaster and operator script provided for the checkpoint evaluation. 
+For the Baseline evaluation of our system we use a modified version of the Puppetmaster and operator script provided for the checkpoint evaluation.
+The Puppetmaster script can be found as \textit{baseline} in the pmscripts folder.
 We run four storage nodes and two worker nodes.
 The used operators are the UpdateAndChainOperator and the AddOperator.
-We compare the performance of our final system with replication, data consistency and fault tolerance, with an earlier version without replication of data.
+We compare the performance of our final system with replication, data consistency and fault tolerance, consisting of four storage nodes with a version without replication of data with only one storage node.
 For that we time how long the whole application runs, before returning to the Puppetmaster.
 Because the script includes waits to ensure the correct startup of all nodes, the values should only be used for comparison between the two systems.
-The full execution on the old system without data replication took 9825 milliseconds.
+The full execution on the system without data replication took 3369 milliseconds.
+The full execution of the system with four storage node and data replication took 3407 milliseconds.
+From that we can see that the replicated system is slightly slower than a non replicated system, but there is only a small difference.
+
+\SubSection{Worst Case Scenario}
+The worst case that can happen is a storage node crashing during the 2-phase commit.
+To evaluate we will run the same script for two cases: one case without a crash and one where the storage node that receives the update crashes during the 2-phase commit.
+In order to ensure that the node crashes during the 2-phase commit we introduce a sufficient gossip delay, which covers the time that it takes for the crash command to reach the node.
+The full execution of the system without a crash takes 1249 milliseconds.
+With a storage node crashing the system operates for 1519 milliseconds.
+That indicates a 17.8\% increase in runtime in the event of a crash of a storage node.
+
+\SubSection{Best Case Scenario}
+For our system the best case scenario consists of operators that all roughly operate for the same time and no failure of storage nodes.
+Because the scheduler assigns operators to workers with the fewest active ones, if there is a big difference between the run time of operators, the scheduling can operate inefficient.
+To compare this scenario we will run two cases: one normal execution and one where one operator takes a lot longer than the other one.
+For the second case we will force one operator from the checkpoint to sleep for some period of time to increase its runtime.
+Therefor in the finally results we have to account for that time.
+A full execution without delay takes 5448 milliseconds.
+
 
 
 %------------------------------------------------------------------------- 
