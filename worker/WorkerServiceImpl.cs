@@ -112,11 +112,6 @@ namespace worker
                                 var client = new DIDAWorkerService.DIDAWorkerServiceClient(channel);
                                 var newRequest = new DIDARequest(request);
                                 this.addNewMetaData(newRequest, proxy._meta);
-                                Console.WriteLine("REQUEST: ");
-
-                                Console.WriteLine(newRequest.ToString());
-
-                                Console.WriteLine("################");
 
                                 _ = client.workOnOperatorAsync(newRequest);
                             }

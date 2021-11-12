@@ -6,22 +6,26 @@ using System.Linq;
 using System.Threading.Tasks;
 using DIDAStorage;
 using Grpc.Core;
+using System.Threading;
 
-namespace storage{
+namespace storage
+{
 
-    struct StorageDetails{
+    struct StorageDetails
+    {
 
         public StorageDetails(String host, int port)
         {
             Host = host;
             Port = port;
         }
-        public string Host { get; set;}
-        public int Port { get; set;}
+        public string Host { get; set; }
+        public int Port { get; set; }
     }
-    
-    public class StorageServerService : DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceBase{
-        
+
+    public class StorageServerService : DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceBase
+    {
+
         DIDAStorage.Storage storage;
 
 
@@ -41,8 +45,11 @@ namespace storage{
 
         private string _serverName;
 
+        private ConcurrentDictionary<int, DIDAStorage.Proto.canCommitRequest> pendingUpdateIfs = new ConcurrentDictionary<int,  DIDAStorage.Proto.canCommitRequest>();
+
         private ConcurrentDictionary<string, List<GossipLib.LamportClock>> _tableTS = new ConcurrentDictionary<string, List<GossipLib.LamportClock>>();
-        public StorageServerService(int replicaId, string host, int port, int gossipDelay, string serverName){
+        public StorageServerService(int replicaId, string host, int port, int gossipDelay, string serverName)
+        {
             storage = new Storage(replicaId, true, host, port, serverName);
             this._gossipDelay = gossipDelay;
 
@@ -53,118 +60,191 @@ namespace storage{
         }
 
 
-        public override Task<DIDAStorage.Proto.DIDARecordReply> read(DIDAStorage.Proto.DIDAReadRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.DIDARecordReply> read(DIDAStorage.Proto.DIDAReadRequest request, ServerCallContext context)
+        {
             return Task.FromResult(processReadRequest(request));
         }
 
-        public override Task<DIDAStorage.Proto.DIDAVersion> write(DIDAStorage.Proto.DIDAWriteRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.DIDAVersion> write(DIDAStorage.Proto.DIDAWriteRequest request, ServerCallContext context)
+        {
             return Task.FromResult(processWriteRequest(request));
         }
 
-        public override Task<DIDAStorage.Proto.DIDAVersion> updateIfValueIs(DIDAStorage.Proto.DIDAUpdateIfRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.DIDAVersion> updateIfValueIs(DIDAStorage.Proto.DIDAUpdateIfRequest request, ServerCallContext context)
+        {
             return Task.FromResult(processUpdateIfRequest(request));
         }
 
-        public override Task<DIDAStorage.Proto.DIDACrashServerReply> crashServer(DIDAStorage.Proto.DIDACrashServerRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.DIDACrashServerReply> crashServer(DIDAStorage.Proto.DIDACrashServerRequest request, ServerCallContext context)
+        {
             Environment.Exit(1);
             //This should not reach here, but who knows
             throw new NotImplementedException();
         }
 
-        public override Task<DIDAStorage.Proto.DIDAListServerReply> listServer(DIDAStorage.Proto.DIDAListServerRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.DIDAListServerReply> listServer(DIDAStorage.Proto.DIDAListServerRequest request, ServerCallContext context)
+        {
             return Task.FromResult(this.storage.getProtoRecords());
         }
 
-        public override Task<DIDAStorage.Proto.ToggleDebugReply> toggleDebug(DIDAStorage.Proto.ToggleDebugRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.ToggleDebugReply> toggleDebug(DIDAStorage.Proto.ToggleDebugRequest request, ServerCallContext context)
+        {
             bool debug = this.storage.toggleDebug();
-            return Task.FromResult(new DIDAStorage.Proto.ToggleDebugReply{ DebugStatus = debug});
+            return Task.FromResult(new DIDAStorage.Proto.ToggleDebugReply { DebugStatus = debug });
         }
-        public override Task<DIDAStorage.Proto.StatusReply> status(DIDAStorage.Proto.StatusRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.StatusReply> status(DIDAStorage.Proto.StatusRequest request, ServerCallContext context)
+        {
             this.storage.printStatus();
-            return Task.FromResult(new DIDAStorage.Proto.StatusReply{ Ok = true});
+            return Task.FromResult(new DIDAStorage.Proto.StatusReply { Ok = true });
         }
 
-        public override Task<DIDAStorage.Proto.GossipReply> gossip(DIDAStorage.Proto.GossipMessage request, ServerCallContext context){
-            this.mergeLogs(request);
-            //Task.Factory.StartNew(() => this.sendGossipMessages());
-            try{
-                //this.updateTableTS(request);
-            } catch (Exception e){
-                Console.WriteLine(e.ToString());
+        public override Task<DIDAStorage.Proto.doCommitResponse> doCommit(DIDAStorage.Proto.doCommitRequest request, ServerCallContext context)
+        {
+            var transactionId = request.UniqueID;
+            var key = this.pendingUpdateIfs[transactionId].Key;
+
+            if(request.Decision){
+                try{
+             
+                this.storage.WriteFromUpdateIfValueIs(this.pendingUpdateIfs[transactionId]);
+
+                this.storage.unlockKey(key);
+                this.pendingUpdateIfs.TryRemove(new KeyValuePair<int, DIDAStorage.Proto.canCommitRequest>(transactionId, this.pendingUpdateIfs[transactionId]));
+
+                }
+                catch (Exception e){
+                    Console.WriteLine(e.ToString());
+                }
+                return Task.FromResult(new DIDAStorage.Proto.doCommitResponse {});
+            }
+            
+            this.storage.unlockKey(key);
+            this.pendingUpdateIfs.TryRemove(new KeyValuePair<int, DIDAStorage.Proto.canCommitRequest>(transactionId, this.pendingUpdateIfs[transactionId]));
+
+            return Task.FromResult(new DIDAStorage.Proto.doCommitResponse {});
+        }
+
+
+        public override Task<DIDAStorage.Proto.canCommitResponse> askCommit(DIDAStorage.Proto.canCommitRequest request, ServerCallContext context)
+        {
+            if(this.storage.isKeyLocked(request.Key)){
+                return Task.FromResult(new DIDAStorage.Proto.canCommitResponse { Vote = false });
             }
 
+            this.storage.blockKey(request.Key);
+            
+            var version = this.storage.getMostRecentVersion(request.Key);
 
-            lock(this.replicaLog){
+            //if we have the same version
+            if(version.versionNumber == request.MostRecentVersion.VersionNumber && version.replicaId == request.MostRecentVersion.ReplicaId){
+                this.pendingUpdateIfs.TryAdd(request.TransactionID, request);
+                return Task.FromResult(new DIDAStorage.Proto.canCommitResponse { Vote = true });
+            }
+            
+            this.storage.unlockKey(request.Key);
+            return Task.FromResult(new DIDAStorage.Proto.canCommitResponse { Vote = false });
+        }
+
+        public override Task<DIDAStorage.Proto.GossipReply> gossip(DIDAStorage.Proto.GossipMessage request, ServerCallContext context)
+        {
+            this.mergeLogs(request);
+            //Task.Factory.StartNew(() => this.sendGossipMessages());
+            // try{
+            //     //this.updateTableTS(request);
+            // } catch (Exception e){
+            //     Console.WriteLine(e.ToString());
+            // }
+
+
+            lock (this.replicaLog)
+            {
                 Console.WriteLine("LOG AT {0}:{1}", this._host, this._port);
 
-                foreach(var entry in this.replicaLog){
+                foreach (var entry in this.replicaLog)
+                {
                     Console.WriteLine("LOG: " + entry.ToString());
                 }
 
 
-                try{
+                try
+                {
                     var keysInLog = this.getKeysInReplicaLog();
-                    foreach(var key in keysInLog){
+                    foreach (var key in keysInLog)
+                    {
                         var records = this.filterLogByKey(key);
                         var orderedRecords = records.OrderBy(record => record._prev);
-                        
-                        foreach(var record in orderedRecords){
-                            if(isStable(record) && !this.executedUpdates.Contains(record._operationIdentifier)){
+
+                        foreach (var record in orderedRecords)
+                        {
+                            if (isStable(record) && !this.executedUpdates.Contains(record._operationIdentifier))
+                            {
                                 this.storage.Write(record._operation.key, record._operation.newValue, record, true);
                                 this.executedUpdates.Add(record._operationIdentifier);
                             }
                         }
                     }
                     //this.discardRecordsFromReplicaLog();
-                }catch (Exception e){
+                }
+                catch (Exception e)
+                {
                     Console.WriteLine(e.ToString());
                 }
             }
-            return Task.FromResult(new DIDAStorage.Proto.GossipReply{});
+            return Task.FromResult(new DIDAStorage.Proto.GossipReply { });
         }
 
-        public override Task<DIDAStorage.Proto.AddStorageReply> addStorage(DIDAStorage.Proto.AddStorageRequest request, ServerCallContext context){
+        public override Task<DIDAStorage.Proto.AddStorageReply> addStorage(DIDAStorage.Proto.AddStorageRequest request, ServerCallContext context)
+        {
 
 
             //If it is a new storage
-            if(!this._otherStorageNodes.ContainsKey(request.Id)){
+            if (!this._otherStorageNodes.ContainsKey(request.Id))
+            {
                 this.storage.incrementStorages();
             }
 
-            if(!(this._otherStorageNodes.TryAdd(request.Id, new StorageDetails(request.Host, request.Port)))){
-                this._otherStorageNodes[request.Id] =  new StorageDetails(request.Host, request.Port);
+            if (!(this._otherStorageNodes.TryAdd(request.Id, new StorageDetails(request.Host, request.Port))))
+            {
+                this._otherStorageNodes[request.Id] = new StorageDetails(request.Host, request.Port);
             }
 
-            return Task.FromResult(new DIDAStorage.Proto.AddStorageReply{ Ok = true });
+            return Task.FromResult(new DIDAStorage.Proto.AddStorageReply { Ok = true });
         }
 
-        private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request){
-            try{
+        private DIDAStorage.Proto.DIDARecordReply processReadRequest(DIDAStorage.Proto.DIDAReadRequest request)
+        {
+            try
+            {
                 DIDAStorage.DIDAVersion version = new DIDAStorage.DIDAVersion();
 
                 //If version comes as null, we go for the most recent version. DIDAVersion is non nullable so putting -1 was the soltuion
-                if(request.Version == null){
+                if (request.Version == null)
+                {
                     version.versionNumber = -1;
                     version.replicaId = -1;
                 }
-                else{
-                    version = new DIDAStorage.DIDAVersion{
-                                    versionNumber = request.Version.VersionNumber,
-                                    replicaId = request.Version.ReplicaId
-                                    };
+                else
+                {
+                    version = new DIDAStorage.DIDAVersion
+                    {
+                        versionNumber = request.Version.VersionNumber,
+                        replicaId = request.Version.ReplicaId
+                    };
                 }
                 var prev = protoToLClock(request.Clock);
 
 
                 //while(prev > this.storage.getValueTS(request.Id) ){
-                    //sleep
+                //sleep
                 //}
 
                 DIDARecord record = storage.Read(request.Id, version);
 
-                DIDAStorage.Proto.DIDARecordReply reply = new DIDAStorage.Proto.DIDARecordReply{
+                DIDAStorage.Proto.DIDARecordReply reply = new DIDAStorage.Proto.DIDARecordReply
+                {
                     Id = request.Id,
-                    Version = new DIDAStorage.Proto.DIDAVersion{
+                    Version = new DIDAStorage.Proto.DIDAVersion
+                    {
                         VersionNumber = record.version.versionNumber,
                         ReplicaId = record.version.replicaId,
                         Clock = LClockToProto(record.valueTS)
@@ -174,105 +254,204 @@ namespace storage{
                 return reply;
 
             }
-            catch(DIDAStorage.Exceptions.DIDAStorageException e){
+            catch (DIDAStorage.Exceptions.DIDAStorageException e)
+            {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
             }
         }
 
-         private DIDAStorage.Proto.DIDAVersion processWriteRequest(DIDAStorage.Proto.DIDAWriteRequest request){            
+        private DIDAStorage.Proto.DIDAVersion processWriteRequest(DIDAStorage.Proto.DIDAWriteRequest request)
+        {
             var newEntry = this.addToLog(request);
 
-            try{
-                lock(this.replicaLog){
+            try
+            {
+                lock (this.replicaLog)
+                {
                     Console.WriteLine("LOG AT {0}:{1}", this._host, this._port);
-                    foreach(var entry in this.replicaLog){
-                    Console.WriteLine("LOG: " + entry.ToString());
+                    foreach (var entry in this.replicaLog)
+                    {
+                        Console.WriteLine("LOG: " + entry.ToString());
+                    }
                 }
             }
-            } catch (Exception e){
+            catch (Exception e)
+            {
                 Console.WriteLine(e.ToString());
             }
-            
+
 
             DIDAStorage.DIDAVersion version;
-            try{
-                if(this.isStable(newEntry)){
-                     version = storage.Write(request.Id, request.Val, newEntry, false);
-                     this.executedUpdates.Add(request.UniqueID);
-                     Task.Factory.StartNew(() => this.sendGossipMessages(this._replicaId));
-                }else{
-                    version = new DIDAStorage.DIDAVersion{
+            try
+            {
+                if (this.isStable(newEntry))
+                {
+                    version = storage.Write(request.Id, request.Val, newEntry, false);
+                    this.executedUpdates.Add(request.UniqueID);
+                    Task.Factory.StartNew(() => this.sendGossipMessages(this._replicaId));
+                }
+                else
+                {
+                    version = new DIDAStorage.DIDAVersion
+                    {
                         versionNumber = -1,
                         replicaId = this._replicaId,
                         replicaTS = newEntry._replicaTS
                     };
                 }
-            return new DIDAStorage.Proto.DIDAVersion {
-                VersionNumber = version.versionNumber,
-                ReplicaId = version.replicaId,
-                Clock = LClockToProto(version.replicaTS)
-            };
-            }catch (Exception e){
+                return new DIDAStorage.Proto.DIDAVersion
+                {
+                    VersionNumber = version.versionNumber,
+                    ReplicaId = version.replicaId,
+                    Clock = LClockToProto(version.replicaTS)
+                };
+            }
+            catch (Exception e)
+            {
                 Console.WriteLine(e.ToString());
                 return new DIDAStorage.Proto.DIDAVersion();
             }
 
         }
 
-        private DIDAStorage.Proto.DIDAVersion processUpdateIfRequest(DIDAStorage.Proto.DIDAUpdateIfRequest request){
-            try{
-                DIDAStorage.DIDAVersion version = storage.UpdateIfValueIs(request.Id, request.Oldvalue, request.Newvalue);
+        private void sendAskCommitMessages(string key, int uniqueID, string oldValue, string newValue, DIDAStorage.DIDAVersion version,  List<bool> results, StorageDetails storage){
+            InternalStorageFrontend f = new InternalStorageFrontend(storage.Host, storage.Port);
+            var result = f.askCommitAsync(key, uniqueID, oldValue, newValue, version, this._replicaId);
+            results.Add(result.Result.Vote);
+        }
 
-                if(version.versionNumber < 0){
-                     throw new RpcException(new Status(StatusCode.InvalidArgument, "Value to update did not match."));
+        private void sendDoCommit(int transactionId, bool decision, StorageDetails storage){
+            InternalStorageFrontend f = new InternalStorageFrontend(storage.Host, storage.Port);
+            _ = f.sendDoCommit(transactionId, decision);
+        }
+
+
+        private DIDAStorage.Proto.DIDAVersion processUpdateIfRequest(DIDAStorage.Proto.DIDAUpdateIfRequest request)
+        {
+            try
+            {
+                //Add id to blocked keys
+                this.storage.blockKey(request.Id);           
+                List<bool> results = new List<bool>();
+                var tasks = new List<Task>();
+
+                var version = this.storage.getMostRecentVersion(request.Id);
+
+                foreach (var storage in this._otherStorageNodes)
+                {
+                    tasks.Add(Task.Factory.StartNew(() => this.sendAskCommitMessages(request.Id, request.UniqueID ,request.Oldvalue, request.Newvalue, version, results, storage.Value)));
                 }
 
-                return new DIDAStorage.Proto.DIDAVersion {
-                VersionNumber = version.versionNumber,
-                ReplicaId = version.replicaId,
-            };
-            }catch(DIDAStorage.Exceptions.DIDAStorageException e){
+                var newRequest = new DIDAStorage.Proto.canCommitRequest(){
+                    TransactionID = request.UniqueID,
+                    Key = request.Id,
+                    OldValue = request.Oldvalue,
+                    NewValue = request.Newvalue,
+                    MostRecentVersion = new DIDAStorage.Proto.DIDAVersion{
+                    VersionNumber = version.versionNumber,
+                    ReplicaId = version.replicaId,
+                    Clock = LClockToProto(version.replicaTS)
+                }   ,
+                    OriginReplicaId = this._replicaId
+                };
+                
+                this.pendingUpdateIfs.TryAdd(request.UniqueID, newRequest);
+
+                Task.WaitAll(tasks.ToArray());
+
+                if(results.Contains(false)){
+                    Console.WriteLine("Aborting transaction with id {0}.");
+                    //Send abort to all
+                    foreach (var storage in this._otherStorageNodes)
+                    {
+                        tasks.Add(Task.Factory.StartNew(() => this.sendDoCommit(request.UniqueID, false, storage.Value)));
+                    }
+                    this.storage.unlockKey(request.Id);
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Value to update did not match."));
+                }
+                else{
+                    //Send do commit to all
+                    foreach (var storage in this._otherStorageNodes)
+                    {
+                        tasks.Add(Task.Factory.StartNew(() => this.sendDoCommit(request.UniqueID, true, storage.Value)));
+                    }
+                    Task.WaitAll(tasks.ToArray());
+                    
+
+                    //return newest version
+                    var newVersion = this.storage.WriteFromUpdateIfValueIs(this.pendingUpdateIfs[request.UniqueID]);
+
+                    //remove from pending update ifs
+                    this.pendingUpdateIfs.TryRemove(new KeyValuePair<int, DIDAStorage.Proto.canCommitRequest>(request.UniqueID, newRequest));
+                    this.storage.unlockKey(request.Id);
+
+                    if(newVersion.versionNumber == -1){
+                        return new DIDAStorage.Proto.DIDAVersion {
+                            VersionNumber = -1,
+                            ReplicaId =  -1
+                        };       
+                    }
+
+                    return new DIDAStorage.Proto.DIDAVersion {
+                        VersionNumber = newVersion.versionNumber,
+                        ReplicaId = newVersion.replicaId,
+                        Clock = LClockToProto(newVersion.replicaTS)
+                    };                    
+            }
+            }
+            catch (DIDAStorage.Exceptions.DIDAStorageException e)
+            {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, e.ToString()));
+            }catch(Exception e){
+                Console.WriteLine(e.ToString());
+                throw e;
             }
         }
-        private DIDAStorage.Proto.LamportClock LClockToProto(GossipLib.LamportClock c){
+        private DIDAStorage.Proto.LamportClock LClockToProto(GossipLib.LamportClock c)
+        {
             DIDAStorage.Proto.LamportClock protoLClock = new DIDAStorage.Proto.LamportClock();
 
             var l = c.toList();
 
-            foreach(var value in l){
+            foreach (var value in l)
+            {
                 protoLClock.Values.Add(value);
             }
 
             return protoLClock;
         }
 
-        private GossipLib.LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock){
+        private GossipLib.LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock)
+        {
             List<int> l = new List<int>();
 
-            foreach(var value in protoClock.Values){
+            foreach (var value in protoClock.Values)
+            {
                 l.Add(value);
             }
 
             return new GossipLib.LamportClock(l);
         }
 
-        private GossipLib.GossipLogRecord addToLog(DIDAStorage.Proto.DIDAWriteRequest request){
-            try{
-                lock(this.replicaLog){
+        private GossipLib.GossipLogRecord addToLog(DIDAStorage.Proto.DIDAWriteRequest request)
+        {
+            try
+            {
+                lock (this.replicaLog)
+                {
                     var entries = this.replicaLog.Where(r => r._operationIdentifier == request.UniqueID).ToList();
-                    if(entries.Count != 0){
+                    if (entries.Count != 0)
+                    {
                         return entries.First();
                     }
 
-                    Console.WriteLine("ADDING TO LOG: ");
                     int replicaId = this._replicaId;
-                    
+
                     //increment ReplicaTS at replicaID by one
                     this.storage.incrementReplicaTSOnRecord(request.Id);
 
                     var prev = this.protoToLClock(request.Clock);
-                    
+
                     var ts = prev;
 
                     ts.assign(this._replicaId - 1, this.storage.getReplicaTimestamp(request.Id).At(this._replicaId - 1));
@@ -280,7 +459,8 @@ namespace storage{
                     var updateId = request.UniqueID;
 
                     var nextVN = this.storage.getNextVersionNumber(request.Id);
-                    var op = new GossipLib.operation{
+                    var op = new GossipLib.operation
+                    {
                         key = request.Id,
                         opType = GossipLib.operationType.WRITE,
                         versionNumber = nextVN,
@@ -297,63 +477,77 @@ namespace storage{
                                                                 updateId,
                                                                 op);
 
-                    
-                        this.replicaLog.Add(newEntry);
-                    
 
-                return newEntry;
+                    this.replicaLog.Add(newEntry);
+
+
+                    return newEntry;
+                }
+
             }
-                        
-            }     
-            catch (Exception e){
+            catch (Exception e)
+            {
                 Console.WriteLine(e.ToString());
             }
             return null;
         }
 
 
-        private bool isStable(GossipLib.GossipLogRecord record){
-            try{
+        private bool isStable(GossipLib.GossipLogRecord record)
+        {
+            try
+            {
                 return record._prev <= this.storage.getValueTS(record._operation.key);
 
-            } catch(Exception e){
+            }
+            catch (Exception e)
+            {
                 Console.WriteLine(e.ToString());
             }
             return false;
         }
 
 
-        private void sendGossipMessages(int sender){
+        private void sendGossipMessages(int sender)
+        {
             System.Threading.Thread.Sleep(this._gossipDelay);
-            lock(this.replicaLog){
-                foreach(var storage in this._otherStorageNodes){
+            lock (this.replicaLog)
+            {
+                foreach (var storage in this._otherStorageNodes)
+                {
                     InternalStorageFrontend f = new InternalStorageFrontend(storage.Value.Host, storage.Value.Port);
                     f.gossip(sender, this.replicaLog);
                 }
             }
         }
 
-        private void mergeLogs(DIDAStorage.Proto.GossipMessage request){
-            lock(this.replicaLog){
-                foreach(var entry in request.Log){
+        private void mergeLogs(DIDAStorage.Proto.GossipMessage request)
+        {
+            lock (this.replicaLog)
+            {
+                foreach (var entry in request.Log)
+                {
                     var logEntry = ProtoGRecordToGRecord(entry);
                     var replicaTS = this.storage.getReplicaTimestamp(entry.Operation.Key);
-                    if((this.replicaLog.Where(e => e._operationIdentifier == entry.UpdateIdentifier).ToList().Count == 0)
-                    && !(protoToLClock(entry.UpdateTS) <= replicaTS)){
-                        Console.WriteLine("Added");
+                    if ((this.replicaLog.Where(e => e._operationIdentifier == entry.UpdateIdentifier).ToList().Count == 0)
+                    && !(protoToLClock(entry.UpdateTS) <= replicaTS))
+                    {
                         this.replicaLog.Add(logEntry);
                         this.storage.getReplicaTimestamp(entry.Operation.Key).merge(protoToLClock(entry.ReplicaTS));
                     }
                 }
             }
         }
-        private DIDAStorage.Proto.GossipLogEntry GRecordToGProtoRecord(GossipLib.GossipLogRecord entry){
-            var protoEntry = new DIDAStorage.Proto.GossipLogEntry{
+        private DIDAStorage.Proto.GossipLogEntry GRecordToGProtoRecord(GossipLib.GossipLogRecord entry)
+        {
+            var protoEntry = new DIDAStorage.Proto.GossipLogEntry
+            {
                 ReplicaID = entry._replicaId,
                 UpdateTS = LClockToProto(entry._updateTS),
                 PreviousClock = LClockToProto(entry._prev),
                 UpdateIdentifier = entry._operationIdentifier,
-                Operation = new DIDAStorage.Proto.GossipOperation{
+                Operation = new DIDAStorage.Proto.GossipOperation
+                {
                     Key = entry._operation.key,
                     VersionNumber = entry._operation.versionNumber,
                     NewValue = entry._operation.newValue
@@ -364,14 +558,16 @@ namespace storage{
             return protoEntry;
         }
 
-        private GossipLib.GossipLogRecord  ProtoGRecordToGRecord(DIDAStorage.Proto.GossipLogEntry entry){
+        private GossipLib.GossipLogRecord ProtoGRecordToGRecord(DIDAStorage.Proto.GossipLogEntry entry)
+        {
             var newEntry = new GossipLib.GossipLogRecord(
                 entry.ReplicaID,
                 protoToLClock(entry.UpdateTS),
                 protoToLClock(entry.PreviousClock),
                 protoToLClock(entry.ReplicaTS),
                 entry.UpdateIdentifier,
-                new GossipLib.operation{
+                new GossipLib.operation
+                {
                     key = entry.Operation.Key,
                     versionNumber = entry.Operation.VersionNumber,
                     newValue = entry.Operation.NewValue
@@ -379,11 +575,15 @@ namespace storage{
             );
             return newEntry;
         }
-        private List<string> getKeysInReplicaLog(){
+        private List<string> getKeysInReplicaLog()
+        {
             var listToReturn = new List<string>();
-            lock(this.replicaLog){
-                foreach(var record in this.replicaLog){
-                    if(!listToReturn.Contains(record._operation.key)){
+            lock (this.replicaLog)
+            {
+                foreach (var record in this.replicaLog)
+                {
+                    if (!listToReturn.Contains(record._operation.key))
+                    {
                         listToReturn.Add(record._operation.key);
                     }
                 }
@@ -391,11 +591,15 @@ namespace storage{
             }
         }
 
-        private List<GossipLib.GossipLogRecord> filterLogByKey(string key){
+        private List<GossipLib.GossipLogRecord> filterLogByKey(string key)
+        {
             var listToReturn = new List<GossipLib.GossipLogRecord>();
-            lock(this.replicaLog){
-                foreach(var logRecord in this.replicaLog){
-                    if(logRecord._operation.key == key){
+            lock (this.replicaLog)
+            {
+                foreach (var logRecord in this.replicaLog)
+                {
+                    if (logRecord._operation.key == key)
+                    {
                         listToReturn.Add(logRecord);
                     }
                 }
@@ -405,7 +609,7 @@ namespace storage{
 
         public override async Task<DIDAStorage.Proto.LivenessCheckReply> livenessCheck(DIDAStorage.Proto.LivenessCheckRequest request, ServerCallContext context)
         {
-            return await Task.FromResult(new DIDAStorage.Proto.LivenessCheckReply{Ok = true});
+            return await Task.FromResult(new DIDAStorage.Proto.LivenessCheckReply { Ok = true });
         }
 
         public override async Task<DIDAStorage.Proto.RemoveFailedStorageReply> removeFailedStorage(DIDAStorage.Proto.RemoveFailedStorageRequest request, ServerCallContext context)
@@ -414,49 +618,62 @@ namespace storage{
             {
                 var keyValue = _otherStorageNodes[request.Id];
                 _otherStorageNodes.TryRemove(request.Id, out keyValue);
-                Console.WriteLine("Failed Storage with ID: {0} removed",request.Id);
+                Console.WriteLine("Failed Storage with ID: {0} removed", request.Id);
             }
 
             return await Task.FromResult(new DIDAStorage.Proto.RemoveFailedStorageReply());
         }
 
-        private void updateTableTS(DIDAStorage.Proto.GossipMessage message){
-            lock(this.replicaLog){
-                foreach(var record in  message.Log){
+        private void updateTableTS(DIDAStorage.Proto.GossipMessage message)
+        {
+            lock (this.replicaLog)
+            {
+                foreach (var record in message.Log)
+                {
                     string key = record.Operation.Key;
-                    if(!this._tableTS.ContainsKey(record.Operation.Key)){
+                    if (!this._tableTS.ContainsKey(record.Operation.Key))
+                    {
                         this._tableTS.TryAdd(key, new List<GossipLib.LamportClock>());
-                        lock(this._tableTS[key]){
-                            for(int i = 0; i < this._otherStorageNodes.Count + 1; i++){
+                        lock (this._tableTS[key])
+                        {
+                            for (int i = 0; i < this._otherStorageNodes.Count + 1; i++)
+                            {
                                 this._tableTS[key].Add(new GossipLib.LamportClock(this._otherStorageNodes.Count + 1));
                             }
                         }
                     }
-                    lock(this._tableTS[key]){
-                        Console.WriteLine("Sender -> " + message.Sender);
-                        this._tableTS[key][message.Sender-1] = protoToLClock(record.ReplicaTS);
+                    lock (this._tableTS[key])
+                    {
+                        this._tableTS[key][message.Sender - 1] = protoToLClock(record.ReplicaTS);
 
                     }
                 }
             }
         }
-        private void discardRecordsFromReplicaLog(){
+        private void discardRecordsFromReplicaLog()
+        {
             List<GossipLib.GossipLogRecord> recordsToRemove = new List<GossipLib.GossipLogRecord>();
-            lock(this.replicaLog){
-                foreach(var entry in this.replicaLog){
+            lock (this.replicaLog)
+            {
+                foreach (var entry in this.replicaLog)
+                {
                     string id = entry._operation.key;
-                    if(this._tableTS.ContainsKey(id)){
-                        lock(this._tableTS[id]){
+                    if (this._tableTS.ContainsKey(id))
+                    {
+                        lock (this._tableTS[id])
+                        {
                             bool control = true;
-                            for(int i = 0; i < this._otherStorageNodes.Count + 1; i++){
-                                Console.WriteLine("entry._replicaId: " + entry._replicaId);
-                                if(!(this._tableTS[id][i].At(entry._replicaId - 1) >= entry._updateTS.At(entry._replicaId - 1))){
+                            for (int i = 0; i < this._otherStorageNodes.Count + 1; i++)
+                            {
+                                if (!(this._tableTS[id][i].At(entry._replicaId - 1) >= entry._updateTS.At(entry._replicaId - 1)))
+                                {
                                     control = false;
                                     break;
                                 }
                             }
-                            
-                            if(control) {
+
+                            if (control)
+                            {
                                 recordsToRemove.Add(entry);
                             }
 
@@ -464,17 +681,17 @@ namespace storage{
                     }
                 }
 
-                for(int i = 0; i< recordsToRemove.Count; i++){
-                    Console.WriteLine("REMOVED: " + recordsToRemove[i].ToString());
+                for (int i = 0; i < recordsToRemove.Count; i++)
+                {
                     this.replicaLog.Remove(recordsToRemove[i]);
                 }
             }
         }
     }
 
-        public class InternalStorageFrontend
+    public class InternalStorageFrontend
     {
-        
+
         private int _port;
 
         private string _host;
@@ -514,20 +731,54 @@ namespace storage{
             this._client = new DIDAStorage.Proto.DIDAStorageService.DIDAStorageServiceClient(this._channel);
 
         }
-        public string getLastErrorMessage(){
+        public string getLastErrorMessage()
+        {
             return this._lastErrorMessage;
         }
 
-        public void ToggleVerbose(){
+        public void ToggleVerbose()
+        {
             this._verbose = !this._verbose;
         }
 
+        public async Task<DIDAStorage.Proto.canCommitResponse> askCommitAsync(string key,
+                                                                            int uniqueID,
+                                                                            string oldValue,
+                                                                            string newValue,
+                                                                            DIDAVersion currentVersion,
+                                                                            int replicaID)
+        {
+            var request = new DIDAStorage.Proto.canCommitRequest(){
+                TransactionID = uniqueID,
+                Key = key,
+                OldValue = oldValue,
+                NewValue = newValue,
+                MostRecentVersion = new DIDAStorage.Proto.DIDAVersion{
+                    VersionNumber = currentVersion.versionNumber,
+                    ReplicaId = currentVersion.replicaId,
+                    Clock = LClockToProto(currentVersion.replicaTS)
+                },
+                OriginReplicaId = replicaID
+            };
+            return await this._client.askCommitAsync(request);
+        }
 
-        public void gossip(int sender, List<GossipLib.GossipLogRecord> records){
+        public async Task<DIDAStorage.Proto.doCommitResponse> sendDoCommit(int transactionID, bool decision)
+        {
+            var request = new DIDAStorage.Proto.doCommitRequest(){
+                UniqueID = transactionID,
+                Decision = decision
+            };
+            return await this._client.doCommitAsync(request);
+        }
+
+        public void gossip(int sender, List<GossipLib.GossipLogRecord> records)
+        {
 
             var gossipMessage = new DIDAStorage.Proto.GossipMessage();
 
-            foreach(var record in records){
+            foreach (var record in records)
+            {
                 var newProtoEntry = GRecordToGProtoRecord(record);
 
 
@@ -539,37 +790,44 @@ namespace storage{
             _ = this._client.gossipAsync(gossipMessage);
 
             return;
-        }        
+        }
 
-        private GossipLib.LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock){
+        private GossipLib.LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock)
+        {
             List<int> l = new List<int>();
 
-            foreach(var value in protoClock.Values){
+            foreach (var value in protoClock.Values)
+            {
                 l.Add(value);
             }
 
             return new GossipLib.LamportClock(l);
         }
 
-        private DIDAStorage.Proto.LamportClock LClockToProto(GossipLib.LamportClock c){
+        private DIDAStorage.Proto.LamportClock LClockToProto(GossipLib.LamportClock c)
+        {
             DIDAStorage.Proto.LamportClock protoLClock = new DIDAStorage.Proto.LamportClock();
 
             var l = c.toList();
 
-            foreach(var value in l){
+            foreach (var value in l)
+            {
                 protoLClock.Values.Add(value);
             }
 
             return protoLClock;
         }
 
-        private DIDAStorage.Proto.GossipLogEntry GRecordToGProtoRecord(GossipLib.GossipLogRecord entry){
-            var protoEntry = new DIDAStorage.Proto.GossipLogEntry{
+        private DIDAStorage.Proto.GossipLogEntry GRecordToGProtoRecord(GossipLib.GossipLogRecord entry)
+        {
+            var protoEntry = new DIDAStorage.Proto.GossipLogEntry
+            {
                 ReplicaID = entry._replicaId,
                 UpdateTS = LClockToProto(entry._updateTS),
                 PreviousClock = LClockToProto(entry._prev),
                 UpdateIdentifier = entry._operationIdentifier,
-                Operation = new DIDAStorage.Proto.GossipOperation{
+                Operation = new DIDAStorage.Proto.GossipOperation
+                {
                     Key = entry._operation.key,
                     VersionNumber = entry._operation.versionNumber,
                     NewValue = entry._operation.newValue
@@ -581,5 +839,5 @@ namespace storage{
         }
     }
 
-    
+
 }

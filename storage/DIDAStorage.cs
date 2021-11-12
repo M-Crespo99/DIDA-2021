@@ -26,6 +26,7 @@ namespace DIDAStorage
 
         private Dictionary<string, List<DIDAValue>> _values = new Dictionary<string, List<DIDAValue>>();
 
+        private List<string> blockedKeys = new List<string>();
         private ConcurrentDictionary<string, int> _versionNumbers = new ConcurrentDictionary<string, int>();
 
         public Storage(int replicaId, bool debug, string host, int port, string serverName)
@@ -78,11 +79,45 @@ namespace DIDAStorage
             }
         }
 
+        public DIDAVersion WriteFromUpdateIfValueIs(DIDAStorage.Proto.canCommitRequest request){
 
-        public GossipLib.LamportClock processNewGossipMessage()
-        {
-            return null;
+            lock (this._values[request.Key])
+            {
+                var valueToChange = this.Read(request.Key, new DIDAVersion { replicaId = -1, versionNumber = -1 });
+                var oldValue = request.OldValue;
+                var newValue = request.NewValue;
+                
+                //Give the version -1 so that we get the latest
+                var replicaTS = protoToLClock(request.MostRecentVersion.Clock);
+                
+                replicaTS.incrementAt(request.OriginReplicaId - 1);
+
+
+                var gRecord = new GossipLib.GossipLogRecord(
+                    request.OriginReplicaId,
+                    replicaTS,
+                    new GossipLib.LamportClock(this._storageCounter + 1),
+                    replicaTS,
+                    request.TransactionID,
+                    new GossipLib.operation{
+                        key = request.Key,
+                        newValue = newValue,
+                        versionNumber = request.MostRecentVersion.VersionNumber + 1,
+                    }
+                );
+
+                if (valueToChange.val == oldValue)
+                {
+                    return this.Write(request.Key, newValue, gRecord, false);
+                }
+                return new DIDAVersion
+                {
+                    versionNumber = -1,
+                    replicaId = -1
+                };
+            }
         }
+
         public DIDAVersion Write(string id, string val, GossipLib.GossipLogRecord record, bool gossipUpdate)
         {
             try
@@ -106,6 +141,7 @@ namespace DIDAStorage
                     if (currentValues.Count != 0)
                     {
                         int oldestIndex = FindIndexOfOldestVersion(currentValues);
+
                         //Increment the version
                         var mostRecentVersion = FindMostRecentVersion(currentValues);
                         
@@ -455,12 +491,38 @@ namespace DIDAStorage
             }
         }
 
+        public void unlockKey(string key){
+            lock(this.blockedKeys){
+                if(this.blockedKeys.Contains(key)){
+                    this.blockedKeys.Remove(key);
+                }
+            }
+        }
+
+        public void blockKey(string key){
+            lock(this.blockedKeys){
+                if(this.blockedKeys.Contains(key)){
+                    return;
+                }else{
+                    this.blockedKeys.Add(key);
+                }
+            }
+        }
+
+        public bool isKeyLocked(string key){
+            lock(this.blockedKeys){
+                return this.blockedKeys.Contains(key);
+            }
+        }
+        public DIDAStorage.DIDAVersion getMostRecentVersion(string key){
+            lock(this._values[key]){
+                return this.FindMostRecentValue(key).version;
+            }
+        }
         public int getNextVersionNumber(string id){
             if(this._values.ContainsKey(id)){
                 lock(this._values[id]){
-                    Console.WriteLine("this._versionNumbers[id]: " + this._versionNumbers[id]);
                     this._versionNumbers[id]+= 1;
-                    Console.WriteLine("this._versionNumbers[id] + 1: " + this._versionNumbers[id]);
                     return this._versionNumbers[id];
                 }
             }
@@ -469,5 +531,20 @@ namespace DIDAStorage
             }
             return 0;
         }
+
+
+        private GossipLib.LamportClock protoToLClock(DIDAStorage.Proto.LamportClock protoClock)
+        {
+            List<int> l = new List<int>();
+
+            foreach (var value in protoClock.Values)
+            {
+                l.Add(value);
+            }
+
+            return new GossipLib.LamportClock(l);
+        }
     }
+
+    
 }

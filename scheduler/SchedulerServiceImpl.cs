@@ -30,13 +30,11 @@ namespace scheduler
         }
         public override async Task<DIDARunApplicationReply> runApplication(DIDARunApplicationRequest request, ServerCallContext context)
         {
-            Console.WriteLine("ENTERED SCHEDULER: ");
             this.parseWorkers(this._workers, request.Workers.ToList());
             this.ParseServers(this._storages, request.Storages.ToList());
             //Get the operators
             var operators = this.ReadApplicationFile(request.FilePath);
             //sort them
-            Console.WriteLine("1");
             if(operators == null){
                 return await Task.FromResult(new DIDARunApplicationReply{Ok = false});
             }

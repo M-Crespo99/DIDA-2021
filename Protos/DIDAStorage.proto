@@ -15,6 +15,9 @@ service DIDAStorageService {
   rpc gossip(GossipMessage) returns (GossipReply);
   rpc livenessCheck(LivenessCheckRequest) returns (LivenessCheckReply);
   rpc removeFailedStorage(RemoveFailedStorageRequest) returns (RemoveFailedStorageReply);
+
+  rpc askCommit(canCommitRequest) returns (canCommitResponse);
+  rpc doCommit(doCommitRequest) returns (doCommitResponse);
 }
 
 
@@ -24,8 +27,6 @@ message GossipMessage{
 }
 
 message GossipReply {
-
-
 }
 
 message AddStorageRequest {
@@ -101,6 +102,8 @@ message DIDAUpdateIfRequest {
 	string id = 1;
 	string oldvalue = 2;
 	string newvalue = 3;
+
+	int32 uniqueID = 4;
 }
 
 message GossipLogEntry{
@@ -134,3 +137,31 @@ message RemoveFailedStorageRequest{
 }
 
 message RemoveFailedStorageReply {}
+
+
+message canCommitResponse{
+	bool vote = 1;
+}
+
+message canCommitRequest{
+	int32 transactionID = 1;
+	string key = 2;
+
+	int32 senderReplicaId = 3;
+	
+	DIDAVersion mostRecentVersion = 4;
+
+	string oldValue = 5;
+	string newValue = 6;
+
+	int32 originReplicaId = 7;	
+}
+
+message doCommitRequest{
+	bool decision = 1;
+	int32 uniqueID = 2;
+}
+
+message doCommitResponse{
+
+}

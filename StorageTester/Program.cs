@@ -13,7 +13,7 @@ namespace StorageTester
                 return;
             }
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-            StorageFrontend.StorageFrontend frontend = new StorageFrontend.StorageFrontend("localhost", Int32.Parse(args[0]), 4, true);
+            StorageFrontend.StorageFrontend frontend = new StorageFrontend.StorageFrontend("localhost", Int32.Parse(args[0]), 3, true);
             Console.Write("> ");
             string input = "";
             while((input = Console.ReadLine()) != "quit" && input != null){

@@ -209,14 +209,21 @@ namespace StorageFrontend
                 var reply = this._client.updateIfValueIs(request);
 
                 if(this._verbose){
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("%% Update Value Operation at Storage node " + this._host + ":" + this._port + " %%");
-                    Console.WriteLine("UPDATE ID: " + id);
-                    Console.WriteLine("UPDATE Old Value : " + oldValue);
-                    Console.WriteLine("UPDATE New Value : " + newValue);
-                    Console.WriteLine("UPDATE Replica ID: " + reply.ReplicaId);
-                    Console.WriteLine("UPDATE Version Number: " + reply.VersionNumber);
-                    Console.ResetColor();
+                    if(reply.VersionNumber > 0){
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("%% Update Value Operation at Storage node " + this._host + ":" + this._port + " %%");
+                        Console.WriteLine("UPDATE ID: " + id);
+                        Console.WriteLine("UPDATE Old Value : " + oldValue);
+                        Console.WriteLine("UPDATE New Value : " + newValue);
+                        Console.WriteLine("UPDATE Replica ID: " + reply.ReplicaId);
+                        Console.WriteLine("UPDATE Version Number: " + reply.VersionNumber);
+                        Console.ResetColor();
+                    }else{
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("%% Update Value Operation at Storage node " + this._host + ":" + this._port + " %%");
+                        Console.WriteLine("STATUS: FAILED");
+                        Console.ResetColor();
+                    }
                 }
                 return reply;
             }catch(RpcException e){
