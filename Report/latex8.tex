@@ -97,6 +97,17 @@ The workers get the url of all storage nodes and the scheduler from the meta dat
 
 %------------------------------------------------------------------------- 
 \Section{Evaluation}
+In this section we will evaluate our solution with a baseline scenario, as well as best and worst cases.
+
+\SubSection{Baseline}
+For the Baseline evaluation of our system we use a modified version of the Puppetmaster and operator script provided for the checkpoint evaluation. 
+We run four storage nodes and two worker nodes.
+The used operators are the UpdateAndChainOperator and the AddOperator.
+We compare the performance of our final system with replication, data consistency and fault tolerance, with an earlier version without replication of data.
+For that we time how long the whole application runs, before returning to the Puppetmaster.
+Because the script includes waits to ensure the correct startup of all nodes, the values should only be used for comparison between the two systems.
+The full execution on the old system without data replication took 9825 milliseconds.
+
 
 
 %------------------------------------------------------------------------- 
