@@ -17,7 +17,6 @@ namespace scheduler
 
         private List<string> _storages = new List<string>();
         private ConcurrentDictionary<string, string> _workers = new ConcurrentDictionary<string, string>();
-        private int _currentWorkerOrder = 0;
         private ConcurrentDictionary<string, int> _operatorsPerWorkerDict = new ConcurrentDictionary<string, int>();
 
         private bool _verbose = true;

@@ -57,7 +57,9 @@ namespace PCS
                     res = response.Ok;
                     ShutdownChannel();
                 }
-                catch (Exception e) { }
+                catch (Exception e) {
+                    Console.WriteLine(e.ToString());
+                }
                 
                 return res;
             }
@@ -71,7 +73,9 @@ namespace PCS
                 client.removeFailedStorageAsync(new RemoveFailedStorageRequest{Id = id}).GetAwaiter().GetResult();
                 ShutdownChannel();
             }
-            catch (Exception e) { }
+            catch (Exception e) {
+                Console.WriteLine(e.ToString());
+            }
         }
         
         public ListServerReply ListServerWorker()

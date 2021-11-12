@@ -112,7 +112,8 @@ namespace PuppetMaster
                 }
                 catch (Exception e)
                 {
-                    
+                    Console.WriteLine(e.ToString());
+                    return new CrashReply{Ok = false};
                 }
                 return new CrashReply {Ok = true};
             }

@@ -412,7 +412,10 @@ namespace storage
                 catch (Exception e)
                 {
                     Console.WriteLine(e.ToString());
-                    throw e;
+                    return new DIDAStorage.Proto.DIDAVersion{
+                        VersionNumber = -1,
+                        ReplicaId = -1
+                    };
                 }
             }
         }
